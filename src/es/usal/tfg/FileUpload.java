@@ -26,14 +26,14 @@ import es.usal.tfg.imageProcessing.ImageProcessing;
 public class FileUpload {
 
 	/**Update the following constant to the desired location for the uploads*/
-	public static final String SERVER_UPLOAD_LOCATION_FOLDER = "/hdd2/serverFiles/";
+	public static final String SERVER_UPLOAD_LOCATION_FOLDER = "/home/aythae/Escritorio/TFG/Demos_Rest/files/";
 
 	/**
 	 * Upload a File
 	 * Reference : https://examples.javacodegeeks.com/enterprise-java/rest/jersey/jersey-file-upload-example/
 	 */
-	static {
-		System.load("/home/aythae/Escritorio/Data/opencv-3.1.0/build/lib");
+	static{
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
 	@POST
 	@Path("/upload")
@@ -84,6 +84,8 @@ public class FileUpload {
 		
 		if (back.isExito() ==false || front.isExito()==false) {
 			System.out.println("Alguno de los hilos ha fallado");
+			removeUploadedFilesIfErrorSituation(back.getFile(), front.getFile());
+			
 			tfin = System.currentTimeMillis();	
 			System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 			return Response.status(500).entity("Error interno del servidor").build();
@@ -97,6 +99,7 @@ public class FileUpload {
 		}
 		else {
 			System.out.println("Alguno de los hilos ha fallado");
+			removeUploadedFilesIfErrorSituation(back.getFile(), front.getFile());
 			tfin = System.currentTimeMillis();	
 			System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 			return Response.status(500).entity("Error interno del servidor").build();
@@ -108,6 +111,8 @@ public class FileUpload {
 		
 		if (result == false) {
 			System.out.println("El proceso de reconocimiento ha fallado");
+
+			removeUploadedFilesIfErrorSituation(back.getFile(), front.getFile());
 			tfin = System.currentTimeMillis();	
 			System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 			return Response.status(500).entity("Error interno del servidor").build();
@@ -121,6 +126,8 @@ public class FileUpload {
 		return Response.status(200).entity(output).build();
 
 	}
+
+	
 
 	// save uploaded file to a defined location on the server
 	File saveFile(InputStream uploadedInputStream, String serverLocation) {
@@ -157,5 +164,14 @@ public class FileUpload {
 		return null;
 	}
 
+	private void removeUploadedFilesIfErrorSituation(File f, File f2) {
+		
+		if (f != null && f.exists()) {
+			f.delete();
+		}
+		if (f2!=null && f2.exists()) {
+			f2.delete();
+		}
+	}
 }
 

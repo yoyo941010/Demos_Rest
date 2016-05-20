@@ -7,7 +7,7 @@ import java.util.concurrent.Semaphore;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 
-import com.lowagie.text.html.simpleparser.Img;
+
 
 public class Hilo implements Runnable {
 
@@ -15,7 +15,7 @@ public class Hilo implements Runnable {
 	
 	private static Semaphore semaforo = new Semaphore(0);
 	
-	private static final int MAX_OCR = 5;
+	private static final int MAX_OCR = 10;
 	private static final int MAX_DETECTION_ATTEMPTS= 30;
 	
 	
@@ -46,7 +46,7 @@ public class Hilo implements Runnable {
 		Size s;
 		double aspectRatio = -1;
 		double correccionThresh = 0;
-		Mat dniThresh = new Mat();
+		Mat dniThresh = new Mat(), dniCortadoOCR= new Mat();
 		
 		
 		s = new Size(dni.size().width/4, dni.size().height/4);
@@ -89,10 +89,12 @@ public class Hilo implements Runnable {
 			String[] nombreYApellidos;
 			ArrayList<String> nombreYApellidosLimpio = new ArrayList<>();
 			correccionThresh = 0;
+			
 			if (cara == CaraDni.FRONTAL) {
-
+				
+				dniCortadoOCR = imProcessing.cropPreOCRFront(dniCortado);
 				do {
-					dniThresh = imProcessing.imageProcessingPreOCR(dniCortado,
+					dniThresh = imProcessing.imageProcessingPreOCR(dniCortadoOCR,
 							ImageProcessing.THRESHOLD_OCR - correccionThresh);
 					if ((ocr = imProcessing.OCRMat(dniThresh, config)) == null) {
 						return;
@@ -105,14 +107,15 @@ public class Hilo implements Runnable {
 						}
 					}
 
-					if (ocr.length > 5) {
+					//if (ocr.length >= 2) {
 
-						for (int i = 1; i < 5; i++) {
-							numDni = ocr[ocr.length - i].replace(" ", "");
+						for (int i = 1; i <= ocr.length; i++) {
+							numDni = ocr[ocr.length - i].replaceAll("\\s","");
+							
 							int tamañoLinea = numDni.length();
 
 							if (tamañoLinea > 9) {
-								for (int j = 0; j < (tamañoLinea - 9); j++) {
+								for (int j = 0; j <=(tamañoLinea - 9); j++) {
 									String numDniTemp = numDni.substring(j, j + 9);
 									
 									if (numDniTemp.matches("\\d{8}[A-Z]")) {
@@ -126,7 +129,7 @@ public class Hilo implements Runnable {
 								break;
 							}
 						}
-					}
+					//}
 
 					if (numDni.isEmpty() || !numDni.matches("\\d{8}[A-Z]")) {
 						if (ImageProcessing.DEBUG) {
@@ -153,8 +156,9 @@ public class Hilo implements Runnable {
 
 			else if (cara == CaraDni.POSTERIOR) {
 
+				dniCortadoOCR = imProcessing.cropPreOCRBack(dniCortado);
 				do {
-					dniThresh = imProcessing.imageProcessingPreOCR(dniCortado,
+					dniThresh = imProcessing.imageProcessingPreOCR(dniCortadoOCR,
 							ImageProcessing.THRESHOLD_OCR - correccionThresh);
 					if ((ocr = imProcessing.OCRMat(dniThresh, config)) == null) {
 						return;
@@ -167,27 +171,49 @@ public class Hilo implements Runnable {
 						}
 					}
 
-					nombreYApellidos = ocr[ocr.length - 1].split("<");
-					int j = 0;
+					//if (ocr.length >= 3) {
 
-					if (nombreYApellidos.length > 2) {
-
-						for (int i = 0; i < nombreYApellidos.length; i++) {
-
-							if (!nombreYApellidos[i].equals("")) {
-
-								nombreYApellidosLimpio.add(nombreYApellidos[i]);
-
-							} else {
-								//nos encontramos ante la separacion entre nombre y apellidos
-								nombreYApellidosLimpio.add(nombreYApellidos[i + 1]);
-								break;
+						for (int i = 1; i <= ocr.length; i++) {
+							
+							
+							nombreYApellidos = ocr[ocr.length - i].split("<");
+							//int j = 0;
+		
+							if (nombreYApellidos.length > 2) {
+		
+								for (int j = 0; j < nombreYApellidos.length; j++) {
+		
+									if (!nombreYApellidos[j].equals("")) {
+										if (nombreYApellidos[j].contains(" ")) {
+											String [] temp = nombreYApellidos[j].split(" ");
+											nombreYApellidos[j] = temp[temp.length-1];
+										}
+										nombreYApellidosLimpio.add(nombreYApellidos[j]);
+		
+									} else {
+										//nos encontramos ante la separacion entre nombre y apellidos
+										nombreYApellidosLimpio.add(nombreYApellidos[j + 1]);
+										break;
+									}
+								}
+							}
+							if (!nombreYApellidosLimpio.isEmpty()) {
+								boolean repetir = false;
+								for (String elemento : nombreYApellidosLimpio) {
+									if (elemento == null ||!elemento.matches("[A-Z]+") ) {
+										
+										repetir = true;
+									}
+								}
+								if (!repetir) {
+									break;
+								}
 							}
 						}
-					}
+					//}
 					if (!nombreYApellidosLimpio.isEmpty()) {
 						for (String elemento : nombreYApellidosLimpio) {
-							if (!elemento.matches("[A-Z]+") || elemento == null) {
+							if (elemento == null ||!elemento.matches("[A-Z]+") ) {
 								if (ImageProcessing.DEBUG) {
 									System.err.println("Error en el OCR, valor de Thresh: "
 											+ (ImageProcessing.THRESHOLD_OCR - correccionThresh));
@@ -200,6 +226,7 @@ public class Hilo implements Runnable {
 							exito = false;
 							break;
 						}
+						//TODO constante correccion con valor 4 aqui y en dni ocr
 						correccionThresh += 2;
 					}
 
@@ -227,7 +254,7 @@ public class Hilo implements Runnable {
 					}
 					nombre = nombreYApellidosLimpio.get(nombreYApellidosLimpio.size() - 1);
 				}
-			} 
+			}
 		}
 		Hilo.semaforo.release();
 		

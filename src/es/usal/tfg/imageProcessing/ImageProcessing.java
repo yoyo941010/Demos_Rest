@@ -37,15 +37,14 @@ import es.usal.tfg.imageProcessing.Hilo.CaraDni;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
-
 public class ImageProcessing {
 
 	public static final boolean DEBUG = false;
-
-	/**
-	 * REVISAR RELACION DE ASPECTO REAL
-	 * 
-	 */
+	private static final boolean TOTAL_DEBUG = false;
+	
+	private static final String PROJECT_ABSOLUTE_ROUTE = "/home/aythae/Escritorio/TFG/Demos_Rest";
+	
+	
 	public static final double RELACIONDEASPECTO = 1.581481481;
 	public static final double MARGENRATIO = 0.1;
 	public static final int IMAGE_PROCESSING_TIMEOUT=150;
@@ -123,16 +122,12 @@ public class ImageProcessing {
 	 */
 	
 	
-	
 	public boolean imageProcessingAndOCR(File dniFrontal, File dniPosterior) {
 
 		
 	
 		Mat  dniCortadoFrontal = new Mat(), dniCortadoPosterior = new Mat();
-		double aspectRatio = -1;
-		double correccionThresh = 0;
-		Size sFrontal, sPosterior;
-		
+
 		
 		// Loading the Image
 		Mat dni = Imgcodecs.imread(dniFrontal.getAbsolutePath(), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
@@ -141,17 +136,17 @@ public class ImageProcessing {
 			System.err.println("Error abriendo la imagen\n");
 			return false;
 		}
+		
 		Hilo hFrontal = new Hilo(dni, this, CaraDni.FRONTAL);
 		Hilo hPosterior = new Hilo(dniDetras, new ImageProcessing(), CaraDni.POSTERIOR);
-		
+	
 		new Thread(hFrontal).start();
 		new Thread(hPosterior).start();
 		
 		try {
-			if (Hilo.getSemaforo().tryAcquire(2, IMAGE_PROCESSING_TIMEOUT, TimeUnit.SECONDS)==false) {
+			if (Hilo.getSemaforo().tryAcquire(2, 150, TimeUnit.SECONDS)==false) {
 				System.err.println("Alguno de los hilos ha fallado en su tarea");
-				System.err.println("Exito hilo frontal: "+hFrontal.isExito());
-				System.err.println("Exito hilo posterior: "+hPosterior.isExito());
+				
 				
 				return false;
 			}
@@ -165,7 +160,8 @@ public class ImageProcessing {
 			System.err.println("Alguno de los hilos ha fallado en su tarea");
 			System.err.println("Exito hilo frontal: "+hFrontal.isExito());
 			System.err.println("Exito hilo posterior: "+hPosterior.isExito());
-				
+			
+			
 			return false;
 		}
 		String numDni = hFrontal.getNumDni();
@@ -187,7 +183,7 @@ public class ImageProcessing {
 		String json = gson.toJson(firma);
 		System.out.println("\n"+json);
 		try {
-			Writer wr = new OutputStreamWriter( new FileOutputStream("file.json", true));
+			Writer wr = new OutputStreamWriter( new FileOutputStream( PROJECT_ABSOLUTE_ROUTE+ "/file.json", true));
 			gson.toJson(firma, wr);
 			
 			wr.flush();
@@ -196,8 +192,8 @@ public class ImageProcessing {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 		return true;
+		
 	}
 
 	
@@ -217,7 +213,7 @@ public class ImageProcessing {
 
 		Imgproc.threshold(dniGauss, dniThresh, thresh, 255, Imgproc.THRESH_BINARY_INV);
 
-		if (DEBUG) {
+		if (TOTAL_DEBUG) {
 			Imgproc.resize(dniThresh, dniResize, s);
 			displayImage(Mat2BufferedImage(dniResize), "Imagen threshold y filtrada");
 		}
@@ -296,7 +292,7 @@ public class ImageProcessing {
 		
 		double aspectRatio = rectangulo.size.width / rectangulo.size.height;
 		
-		if (DEBUG) {
+		if (TOTAL_DEBUG) {
 			System.out.println("\n\nAngulo: " + correctedAngle + "\tAngulo sin corregir: " + rectangulo.angle);
 			System.out.println("Ancho: " + rectangulo.size.width + "\tAlto: " + rectangulo.size.height);
 			System.out.println("Relacion de aspecto: " + aspectRatio);
@@ -324,7 +320,7 @@ public class ImageProcessing {
 		
 		Core.copyMakeBorder(dni, temp, dni.rows()/2, dni.rows()/2, dni.cols()/2, dni.cols()/2, Core.BORDER_CONSTANT, new Scalar(0, 0, 0));
 		
-		if (DEBUG) {
+		if (TOTAL_DEBUG) {
 			Imgproc.resize(temp, dniResize, new Size(rotatedSize.width / 8 , rotatedSize.height / 8));
 			displayImage(Mat2BufferedImage(dniResize), "pre-girado");
 		}
@@ -337,14 +333,16 @@ public class ImageProcessing {
 		// Rotate the image
 		Imgproc.warpAffine(temp, dniRotated, rotationMat, rotatedSize, Imgproc.INTER_CUBIC);
 
-		if (DEBUG) {
+		if (TOTAL_DEBUG) {
 			Imgproc.resize(dniRotated, dniResize, new Size(dniRotated.size().width / 8 , dniRotated.size().height / 8));
 			displayImage(Mat2BufferedImage(dniResize), "Girado");
 		}
 
 		// Extended size to prevent that the RotatedRect cut the DNI
-		Size extendedSize = new Size(rectangulo.size.width + (dni.size().width / 100) * 2,
-				rectangulo.size.height + (dni.size().height / 100) * 2);
+		Size extendedSize = new Size(rectangulo.size.width + (dni.size().width / 80) * 2,
+				rectangulo.size.height + (dni.size().height / 80) * 2);	//Antes size /100
+		
+
 
 		// Crop the DNI from the rotated image
 		Imgproc.getRectSubPix(dniRotated, extendedSize, new Point(rectangulo.center.x + dni.cols()/2, rectangulo.center.y + dni.rows()/2), dniCortado);
@@ -357,8 +355,37 @@ public class ImageProcessing {
 		return dniCortado;
 	}
 	
+	Mat cropPreOCRFront(Mat dni)
+	{
+		Mat dniCortado = new Mat(), dniResize = new Mat();
+
+		Size newSize = new Size(dni.cols(), dni.rows()/3);
+
+		// Crop the DNI from the rotated image
+		Imgproc.getRectSubPix(dni, newSize, new Point((double)dni.cols()/2, 5*((double)dni.rows())/6), dniCortado);
+		if (DEBUG) {
+			Imgproc.resize(dniCortado, dniResize, new Size(dniCortado.size().width / 2, dniCortado.size().height / 2));
+			displayImage(Mat2BufferedImage(dniResize), "CortadoPreOCR");
+		}
+		return dniCortado;
+	}
+	Mat cropPreOCRBack(Mat dni)
+	{
+		Mat dniCortado = new Mat(), dniResize = new Mat();
+
+		Size newSize = new Size(dni.cols(), dni.rows()/3);
+
+		// Crop the DNI from the rotated image
+		Imgproc.getRectSubPix(dni, newSize, new Point((double)dni.cols()/2, 3*((double)dni.rows())/4), dniCortado);
+		if (DEBUG) {
+			Imgproc.resize(dniCortado, dniResize, new Size(dniCortado.size().width / 2, dniCortado.size().height / 2));
+			displayImage(Mat2BufferedImage(dniResize), "CortadoPreOCR");
+		}
+		return dniCortado;
+	}
 	Mat imageProcessingPreOCR (Mat dniCortado, double valorThresh)
 	{
+		
 		Mat dniGray = new Mat(), dniGauss= new Mat(), dniThresh = new Mat(), dniResize = new Mat();
 		// Convert to gray and gaussianblur it
 		Imgproc.cvtColor(dniCortado, dniGray, Imgproc.COLOR_BGR2GRAY);
@@ -377,11 +404,12 @@ public class ImageProcessing {
 	
 	String[] OCRMat (Mat m, List<String> config)
 	{
+		
 		ITesseract instance = new Tesseract(); // JNA Interface Mapping
 		// ITesseract instance = new Tesseract1(); // JNA Direct Mapping
 		// File tessDataFolder = LoadLibs.extractTessResources("tessdata"); //
 		// Maven build bundles English data
-		// instance.setDatapath(tessDataFolder.getAbsolutePath());
+		instance.setDatapath(PROJECT_ABSOLUTE_ROUTE);
 
 		if (config != null) {
 			instance.setConfigs(config);
