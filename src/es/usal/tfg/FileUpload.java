@@ -35,6 +35,7 @@ public class FileUpload {
 	static{
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
+	
 	@POST
 	@Path("/upload")
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
@@ -50,7 +51,7 @@ public class FileUpload {
 		Thread hFront = new Thread(front);
 		Thread hBack = new Thread(back);
 		
-		
+		System.out.println("Arrancando los hilos");
 		
 		hFront.start();
 		hBack.start();
@@ -62,7 +63,7 @@ public class FileUpload {
 			System.out.println("El hilo front ha fallado");
 			
 			e.printStackTrace();
-			
+			removeUploadedFiles(back.getFile(), front.getFile());
 			tfin = System.currentTimeMillis();	
 			System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 			
@@ -75,6 +76,7 @@ public class FileUpload {
 			// TODO Auto-generated catch block
 			System.out.println("El hilo back ha fallado");
 			e.printStackTrace();
+			removeUploadedFiles(back.getFile(), front.getFile());
 			tfin = System.currentTimeMillis();	
 			System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 			return Response.status(500).entity("Error interno del servidor").build();
@@ -84,7 +86,8 @@ public class FileUpload {
 		
 		if (back.isExito() ==false || front.isExito()==false) {
 			System.out.println("Alguno de los hilos ha fallado");
-			removeUploadedFilesIfErrorSituation(back.getFile(), front.getFile());
+			
+			removeUploadedFiles(back.getFile(), front.getFile());
 			
 			tfin = System.currentTimeMillis();	
 			System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
@@ -99,7 +102,7 @@ public class FileUpload {
 		}
 		else {
 			System.out.println("Alguno de los hilos ha fallado");
-			removeUploadedFilesIfErrorSituation(back.getFile(), front.getFile());
+			removeUploadedFiles(back.getFile(), front.getFile());
 			tfin = System.currentTimeMillis();	
 			System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 			return Response.status(500).entity("Error interno del servidor").build();
@@ -112,13 +115,13 @@ public class FileUpload {
 		if (result == false) {
 			System.out.println("El proceso de reconocimiento ha fallado");
 
-			removeUploadedFilesIfErrorSituation(back.getFile(), front.getFile());
+			removeUploadedFiles(back.getFile(), front.getFile());
 			tfin = System.currentTimeMillis();	
 			System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 			return Response.status(500).entity("Error interno del servidor").build();
 			
 		}
-		
+		removeUploadedFiles(back.getFile(), front.getFile());
 		tfin = System.currentTimeMillis();	
 		System.out.println("Tiempo total: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 		
@@ -164,7 +167,7 @@ public class FileUpload {
 		return null;
 	}
 
-	private void removeUploadedFilesIfErrorSituation(File f, File f2) {
+	private void removeUploadedFiles(File f, File f2) {
 		
 		if (f != null && f.exists()) {
 			f.delete();

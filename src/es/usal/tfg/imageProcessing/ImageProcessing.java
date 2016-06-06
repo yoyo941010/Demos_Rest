@@ -34,20 +34,23 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import es.usal.tfg.imageProcessing.Hilo.CaraDni;
+import es.usal.tfg.FileUpload;
+import es.usal.tfg.imageProcessing.Firma;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
+
+
 public class ImageProcessing {
 
-	public static final boolean DEBUG = false;
+	public static final boolean DEBUG = true;
 	private static final boolean TOTAL_DEBUG = false;
 	
 	private static final String PROJECT_ABSOLUTE_ROUTE = "/home/aythae/Escritorio/TFG/Demos_Rest";
-	
+	private static final int DETECTION_TIMEOUT = 30;
 	
 	public static final double RELACIONDEASPECTO = 1.581481481;
 	public static final double MARGENRATIO = 0.1;
-	public static final int IMAGE_PROCESSING_TIMEOUT=150;
 	// CAMARA 13MPX
 	private static final String DNIE1NORMAL = "img/IMG_20160412_14484728.jpg";
 	private static final String DNIE1VERTICAL = "img/IMG_20160412_144855203.jpg";
@@ -144,9 +147,8 @@ public class ImageProcessing {
 		new Thread(hPosterior).start();
 		
 		try {
-			if (Hilo.getSemaforo().tryAcquire(2, 150, TimeUnit.SECONDS)==false) {
+			if (Hilo.getSemaforo().tryAcquire(2, DETECTION_TIMEOUT, TimeUnit.SECONDS)==false) {
 				System.err.println("Alguno de los hilos ha fallado en su tarea");
-				
 				
 				return false;
 			}

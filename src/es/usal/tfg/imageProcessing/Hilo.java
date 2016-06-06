@@ -64,7 +64,7 @@ public class Hilo implements Runnable {
 				if (ImageProcessing.DEBUG) {
 					System.err.println("Error detectando el dni. Valor Thresh: "+ (ImageProcessing.THRESHOLD_THRESH-correccionThresh));
 					
-					imProcessing.getSc().nextLine();
+					//TODO imProcessing.getSc().nextLine();
 				}
 				if (correccionThresh/2 >= MAX_DETECTION_ATTEMPTS) {
 					exito = false;
