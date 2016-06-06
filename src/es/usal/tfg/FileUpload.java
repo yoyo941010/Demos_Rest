@@ -26,7 +26,7 @@ import es.usal.tfg.imageProcessing.ImageProcessing;
 public class FileUpload {
 
 	/**Update the following constant to the desired location for the uploads*/
-	public static final String SERVER_UPLOAD_LOCATION_FOLDER = "/home/aythae/Escritorio/TFG/Demos_Rest/files/";
+	public static final String SERVER_UPLOAD_LOCATION_FOLDER = "/demos/files/";
 
 	/**
 	 * Upload a File

@@ -43,10 +43,10 @@ import net.sourceforge.tess4j.TesseractException;
 
 public class ImageProcessing {
 
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 	private static final boolean TOTAL_DEBUG = false;
 	
-	private static final String PROJECT_ABSOLUTE_ROUTE = "/home/aythae/Escritorio/TFG/Demos_Rest";
+	private static final String PROJECT_ABSOLUTE_ROUTE = "/demos";
 	private static final int DETECTION_TIMEOUT = 30;
 	
 	public static final double RELACIONDEASPECTO = 1.581481481;
@@ -96,6 +96,7 @@ public class ImageProcessing {
 	private RotatedRect rectangulo;
 	private double correctedAngle;
 	
+	//TODO remove scanner
 	private Scanner sc;
 	
 	
@@ -185,7 +186,7 @@ public class ImageProcessing {
 		String json = gson.toJson(firma);
 		System.out.println("\n"+json);
 		try {
-			Writer wr = new OutputStreamWriter( new FileOutputStream( PROJECT_ABSOLUTE_ROUTE+ "/file.json", true));
+			Writer wr = new OutputStreamWriter( new FileOutputStream( PROJECT_ABSOLUTE_ROUTE+ "/files/file.json", true));
 			gson.toJson(firma, wr);
 			
 			wr.flush();
