@@ -26,7 +26,7 @@ import es.usal.tfg.imageProcessing.ImageProcessing;
 public class FileUpload {
 
 	/**Update the following constant to the desired location for the uploads*/
-	public static final String SERVER_UPLOAD_LOCATION_FOLDER = "/demos/files/";
+	public static final String SERVER_UPLOAD_LOCATION_FOLDER = CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE +"files/";
 
 	/**
 	 * Upload a File
@@ -135,8 +135,9 @@ public class FileUpload {
 	// save uploaded file to a defined location on the server
 	File saveFile(InputStream uploadedInputStream, String serverLocation) {
 
+		OutputStream outpuStream =null;
 		try {
-			OutputStream outpuStream ;
+			
 			int read = 0;
 			byte[] bytes = new byte[1024];
 
@@ -154,16 +155,27 @@ public class FileUpload {
 			}
 
 			outpuStream.flush();
-			outpuStream.close();
-
-			uploadedInputStream.close();
+			
 			
 			return file;
 		} catch (IOException e) {
 
 			e.printStackTrace();
 		}
+		finally {
 
+			try {
+				if (outpuStream !=null) {
+					outpuStream.close();
+				}
+				uploadedInputStream.close();
+			} catch (IOException e) {
+				
+				e.printStackTrace();
+			}
+		}
+
+		
 		return null;
 	}
 

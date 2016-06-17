@@ -34,6 +34,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import es.usal.tfg.imageProcessing.Hilo.CaraDni;
+import es.usal.tfg.CampaignCredentials;
+import es.usal.tfg.CampaignManagement;
 import es.usal.tfg.FileUpload;
 import es.usal.tfg.imageProcessing.Firma;
 import net.sourceforge.tess4j.ITesseract;
@@ -46,7 +48,7 @@ public class ImageProcessing {
 	public static final boolean DEBUG = false;
 	private static final boolean TOTAL_DEBUG = false;
 	
-	private static final String PROJECT_ABSOLUTE_ROUTE = "/demos";
+	
 	private static final int DETECTION_TIMEOUT = 30;
 	
 	public static final double RELACIONDEASPECTO = 1.581481481;
@@ -186,7 +188,7 @@ public class ImageProcessing {
 		String json = gson.toJson(firma);
 		System.out.println("\n"+json);
 		try {
-			Writer wr = new OutputStreamWriter( new FileOutputStream( PROJECT_ABSOLUTE_ROUTE+ "/files/file.json", true));
+			Writer wr = new OutputStreamWriter( new FileOutputStream( CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE+ "/files/file.json", true));
 			gson.toJson(firma, wr);
 			
 			wr.flush();
@@ -194,6 +196,9 @@ public class ImageProcessing {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+		finally {
+			//TODO close writer
 		}
 		return true;
 		
@@ -412,7 +417,7 @@ public class ImageProcessing {
 		// ITesseract instance = new Tesseract1(); // JNA Direct Mapping
 		// File tessDataFolder = LoadLibs.extractTessResources("tessdata"); //
 		// Maven build bundles English data
-		instance.setDatapath(PROJECT_ABSOLUTE_ROUTE);
+		instance.setDatapath(CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE);
 
 		if (config != null) {
 			instance.setConfigs(config);
