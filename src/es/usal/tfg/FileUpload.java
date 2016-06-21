@@ -26,15 +26,12 @@ import es.usal.tfg.imageProcessing.ImageProcessing;
 public class FileUpload {
 
 	/**Update the following constant to the desired location for the uploads*/
-	public static final String SERVER_UPLOAD_LOCATION_FOLDER = CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE +"files/";
+	public static final String SERVER_UPLOAD_LOCATION_FOLDER = CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE +"/files/";
 
 	/**
 	 * Upload a File
 	 * Reference : https://examples.javacodegeeks.com/enterprise-java/rest/jersey/jersey-file-upload-example/
 	 */
-	static{
-		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-	}
 	
 	@POST
 	@Path("/upload")

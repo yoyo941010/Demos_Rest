@@ -101,6 +101,9 @@ public class ImageProcessing {
 	//TODO remove scanner
 	private Scanner sc;
 	
+	static{
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+	}
 	
 	public ImageProcessing ()
 	{

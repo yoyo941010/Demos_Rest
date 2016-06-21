@@ -40,24 +40,24 @@ public class PasswordStorage
      * @Modification
      * Cambio de Sha1 a sha256
      */
-    public static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
+    private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
 
     // These constants may be changed without breaking existing hashes.
-    public static final int SALT_BYTE_SIZE = 24;
+    private static final int SALT_BYTE_SIZE = 24;
     /**
      * @Modification
      * Cambio de 18 a 30 siguiendo los criterios de https://github.com/defuse/password-hashing#customization
      */
-    public static final int HASH_BYTE_SIZE = 30;
-    public static final int PBKDF2_ITERATIONS = 64000;
+    private static final int HASH_BYTE_SIZE = 30;
+    private static final int PBKDF2_ITERATIONS = 64000;
 
     // These constants define the encoding and may not be changed.
-    public static final int HASH_SECTIONS = 5;
-    public static final int HASH_ALGORITHM_INDEX = 0;
-    public static final int ITERATION_INDEX = 1;
-    public static final int HASH_SIZE_INDEX = 2;
-    public static final int SALT_INDEX = 3;
-    public static final int PBKDF2_INDEX = 4;
+    private static final int HASH_SECTIONS = 5;
+    private static final int HASH_ALGORITHM_INDEX = 0;
+    private static final int ITERATION_INDEX = 1;
+    private static final int HASH_SIZE_INDEX = 2;
+    private static final int SALT_INDEX = 3;
+    private static final int PBKDF2_INDEX = 4;
 
     public static String createHash(String password)
         throws CannotPerformOperationException
@@ -206,13 +206,13 @@ public class PasswordStorage
         }
     }
 
-    private static byte[] fromBase64(String hex)
+    public static byte[] fromBase64(String hex)
         throws IllegalArgumentException
     {
         return DatatypeConverter.parseBase64Binary(hex);
     }
 
-    private static String toBase64(byte[] array)
+    public static String toBase64(byte[] array)
     {
         return DatatypeConverter.printBase64Binary(array);
     }

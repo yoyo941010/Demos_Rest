@@ -10,4 +10,18 @@ public class CampaignCredentials {
 		this.campaignName = campaignName;
 		this.hashPass = hashPass;
 	}
+
+	public String getCampaignName() {
+		return campaignName;
+	}
+
+	public String getHashPass() {
+		return hashPass;
+	}
+	
+	@Override
+	public String toString() {
+		// TODO Auto-generated method stub
+		return "Campaña: " + campaignName + "\nPass: " + hashPass;
+	}
 }
