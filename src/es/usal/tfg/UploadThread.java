@@ -14,34 +14,39 @@ public class UploadThread implements Runnable {
 	private FormDataMultiPart form;
 	private FileUpload fileUpload;
 	private File file;
+	private Campaign campaign;
 	
-	public UploadThread(String field, FormDataMultiPart form, FileUpload fileUpload) {
+	public UploadThread(String field, FormDataMultiPart form, FileUpload fileUpload, Campaign campaign) {
 		this.field = field;
 		this.form = form;
 		this.fileUpload = fileUpload;
 		this.file=null;
+		this.campaign = campaign;
 	}
 	
-
 	@Override
 	public void run() {
-		
-		 FormDataBodyPart filePart = form.getField(field);
 
-		 ContentDisposition headerOfFilePart =  filePart.getContentDisposition();
+		FormDataBodyPart filePart = form.getField(field);
 
-		 InputStream fileInputStream = filePart.getValueAs(InputStream.class);
+		ContentDisposition headerOfFilePart = filePart.getContentDisposition();
 
-		 String filePath = FileUpload.SERVER_UPLOAD_LOCATION_FOLDER + headerOfFilePart.getFileName();
+		InputStream fileInputStream = filePart.getValueAs(InputStream.class);
+
+		String filePath = campaign.getDirectory().getAbsolutePath() + "/"
+				+ headerOfFilePart.getFileName();
 
 		// save the file to the server
-		file =fileUpload.saveFile(fileInputStream, filePath);
-		exito = true;
+		file = fileUpload.saveFile(fileInputStream, filePath);
+
+		if (file != null) {
+			exito = true;
+		}
 	}
+
 	public boolean isExito() {
 		return exito;
 	}
-
 
 	public File getFile() {
 		return file;

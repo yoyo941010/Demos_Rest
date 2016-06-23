@@ -6,6 +6,7 @@ public class Campaign {
 	
 	private final String campaignName;
 	private final File dataBase;
+	public final Object lockDataBase = new Object();
 	private final File directory;
 	
 	public Campaign(String campaignName, File directory) {

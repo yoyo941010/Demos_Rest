@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Strict//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Form Authenticate</title>
+</head>
+<body>
+	<h1>Introduzca usuario y token</h1>
+
+	<form
+		action="https://prodiasv08.fis.usal.es:443/Demos_Rest/rest/campaign/authenticate_token"
+		method="post" enctype="application/x-www-form-urlencoded">
+
+		<p>
+			Introduzca un nombre de campaña en base64: <input type="text" name="campaign"
+				size="50" />
+		</p>
+		<p>
+			Introduzca un token de campaña en base64: <input type="text" name="token"
+				size="50" />
+		</p>
+		
+
+		<input type="submit" value="Autentica" />
+	</form>
+
+</body>
+</html>

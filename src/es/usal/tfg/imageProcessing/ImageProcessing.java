@@ -4,16 +4,29 @@ import java.awt.FlowLayout;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableEntryException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -32,8 +45,11 @@ import org.opencv.imgproc.Imgproc;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 
 import es.usal.tfg.imageProcessing.Hilo.CaraDni;
+import es.usal.tfg.security.SymmetricEncryption;
+import es.usal.tfg.Campaign;
 import es.usal.tfg.CampaignCredentials;
 import es.usal.tfg.CampaignManagement;
 import es.usal.tfg.FileUpload;
@@ -49,10 +65,18 @@ public class ImageProcessing {
 	private static final boolean TOTAL_DEBUG = false;
 	
 	
-	private static final int DETECTION_TIMEOUT = 30;
+	public static final int DETECTION_TIMEOUT = 30;
 	
 	public static final double RELACIONDEASPECTO = 1.581481481;
 	public static final double MARGENRATIO = 0.1;
+	
+	public static final int CORRECTO = 0;
+	public static final int ERROR_INTERNO = 1;
+	public static final int ERROR_TIMEOUT = 2;
+	public static final int ERROR_FRONTAL = 3;
+	public static final int ERROR_POSTERIOR = 4;
+	public static final int ERROR_AMBOS = 5;
+	
 	// CAMARA 13MPX
 	private static final String DNIE1NORMAL = "img/IMG_20160412_14484728.jpg";
 	private static final String DNIE1VERTICAL = "img/IMG_20160412_144855203.jpg";
@@ -97,21 +121,20 @@ public class ImageProcessing {
 
 	private RotatedRect rectangulo;
 	private double correctedAngle;
+	private Campaign campaign;
 	
-	//TODO remove scanner
-	private Scanner sc;
 	
 	static{
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
 	
-	public ImageProcessing ()
+	public ImageProcessing (Campaign c)
 	{
-		
+		this.campaign = c;
 		this.rectangulo = new RotatedRect();
 		this.correctedAngle = 0;
 		
-		this.sc = new Scanner(System.in);
+		
 	}
 	/**
 	 * Poner las referencias al finding contours
@@ -131,7 +154,7 @@ public class ImageProcessing {
 	 */
 	
 	
-	public boolean imageProcessingAndOCR(File dniFrontal, File dniPosterior) {
+	public int imageProcessingAndOCR(File dniFrontal, File dniPosterior) {
 
 		
 	
@@ -143,11 +166,11 @@ public class ImageProcessing {
 		Mat dniDetras = Imgcodecs.imread(dniPosterior.getAbsolutePath(), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
 		if (dni.empty() == true || dniDetras.empty() == true) {
 			System.err.println("Error abriendo la imagen\n");
-			return false;
+			return ERROR_INTERNO;
 		}
 		
 		Hilo hFrontal = new Hilo(dni, this, CaraDni.FRONTAL);
-		Hilo hPosterior = new Hilo(dniDetras, new ImageProcessing(), CaraDni.POSTERIOR);
+		Hilo hPosterior = new Hilo(dniDetras, new ImageProcessing(campaign), CaraDni.POSTERIOR);
 	
 		new Thread(hFrontal).start();
 		new Thread(hPosterior).start();
@@ -156,11 +179,13 @@ public class ImageProcessing {
 			if (Hilo.getSemaforo().tryAcquire(2, DETECTION_TIMEOUT, TimeUnit.SECONDS)==false) {
 				System.err.println("Alguno de los hilos ha fallado en su tarea");
 				
-				return false;
+				return ERROR_TIMEOUT;
 			}
 		} catch (InterruptedException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
+			
+			return ERROR_INTERNO;
 		}
 		if (!hFrontal.isExito() || !hPosterior.isExito()) {
 			//Alguno de los hilos no ha logrado detectar texto
@@ -169,9 +194,18 @@ public class ImageProcessing {
 			System.err.println("Exito hilo frontal: "+hFrontal.isExito());
 			System.err.println("Exito hilo posterior: "+hPosterior.isExito());
 			
-			
-			return false;
+			if (!hFrontal.isExito() && !hPosterior.isExito())
+			{
+				return ERROR_AMBOS;
+			}
+			else if (!hFrontal.isExito()) {
+				return ERROR_FRONTAL;
+			}
+			else if (!hPosterior.isExito()) {
+				return ERROR_POSTERIOR;
+			}
 		}
+		
 		String numDni = hFrontal.getNumDni();
 		String nombre = hPosterior.getNombre();
 		String apellidos = hPosterior.getApellidos();
@@ -179,31 +213,96 @@ public class ImageProcessing {
 		dniCortadoFrontal = hFrontal.getDniCortado();
 		dniCortadoPosterior = hPosterior.getDniCortado();
 		
-		File dniFrontalRecordado = new File(dniFrontal.getAbsolutePath().replace(".jpg", "(recortado).jpg"));
-		File dniPosteriorRecordado = new File(dniPosterior.getAbsolutePath().replace(".jpg", "(recortado).jpg"));
 		
-		Imgcodecs.imwrite(dniFrontalRecordado.getAbsolutePath(), dniCortadoFrontal);
-		Imgcodecs.imwrite(dniPosteriorRecordado.getAbsolutePath(), dniCortadoPosterior);
 		
-		Firma firma = new Firma(dniFrontalRecordado.getAbsoluteFile(), dniPosteriorRecordado.getAbsoluteFile(), nombre, apellidos, numDni);
+		//File dniFrontalRecordado = new File(dniFrontal.getAbsolutePath());
+		//File dniPosteriorRecordado = new File(dniPosterior.getAbsolutePath());
+		
+		long tIni =0, tfin=0;
+		tIni = System.currentTimeMillis();
+		SaveEncryptedImage sFrontal = new SaveEncryptedImage(dniCortadoFrontal, dniFrontal, campaign), 
+				sPosterior = new SaveEncryptedImage(dniCortadoPosterior, dniPosterior, campaign);
+		
+		Thread tF = new Thread(sFrontal), tP = new Thread(sPosterior);
+		tF.start(); tP.start();
+		
+		try {
+			tF.join(0);
+			tP.join(0);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		
+		tfin = System.currentTimeMillis();
+		System.out.println("Tiempo total guardando encriptado: " + ((double)(tfin-tIni) / 1000)+ " segundos");
+		/*
+		BufferedImage dniFrontalImage = Mat2BufferedImage(dniCortadoFrontal);
+		BufferedImage dniPosteriorImage = Mat2BufferedImage(dniCortadoPosterior);
+		
+		CipherOutputStream cos = null;
+		try {
+			cos = SymmetricEncryption.encryptFileUsingKey(dniFrontalRecordado, campaign.getCampaignName());
+			/**
+			 * Para incrementar velocidad con imagenes pequeñas
+			 * @reference http://stackoverflow.com/questions/18522398/fastest-way-to-read-write-images-from-a-file-into-abufferedimage
+			 * http://docs.oracle.com/javase/8/docs/api/javax/imageio/ImageIO.html
+			 */
+			/*
+			//TODO ImageIO.setUseCache(false);
+			ImageIO.write(dniFrontalImage, "jpg", cos);
+		} catch (InvalidKeyException | NoSuchAlgorithmException | KeyStoreException | CertificateException
+				| NoSuchPaddingException | InvalidAlgorithmParameterException | UnrecoverableEntryException
+				| IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		*/
+		//Imgcodecs.imwrite(dniFrontalRecordado.getAbsolutePath(), dniCortadoFrontal);
+		//Imgcodecs.imwrite(dniPosteriorRecordado.getAbsolutePath(), dniCortadoPosterior);
+		
+		Firma firma = new Firma(dniFrontal.getAbsoluteFile(), dniPosterior.getAbsoluteFile(), nombre, apellidos, numDni);
 		
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(firma);
 		System.out.println("\n"+json);
+		
+		
+		File signaturesDB = campaign.getDataBase();
+		BufferedWriter wr=null;
+		CipherOutputStream cos = null;
 		try {
-			Writer wr = new OutputStreamWriter( new FileOutputStream( CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE+ "/files/file.json", true));
-			gson.toJson(firma, wr);
 			
-			wr.flush();
-			wr.close();
-		} catch (IOException e) {
+			synchronized (campaign.lockDataBase) {
+				cos = SymmetricEncryption.appendAES(signaturesDB, campaign.getCampaignName());
+				wr = new BufferedWriter(new OutputStreamWriter(cos));
+				gson.toJson(firma, wr);
+				
+				wr.close();
+				wr = null;
+			}
+			
+			
+			
+		} catch (IOException | InvalidKeyException | IllegalArgumentException | KeyStoreException
+				| NoSuchAlgorithmException | CertificateException | UnrecoverableEntryException
+				| InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException
+				| BadPaddingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return ERROR_INTERNO;
 		}
 		finally {
-			//TODO close writer
+			try {
+				if (wr != null)
+				{
+					wr.flush();
+					wr.close();
+				}
+			} catch (IOException e) {}
 		}
-		return true;
+		return CORRECTO;
 		
 	}
 
@@ -380,6 +479,7 @@ public class ImageProcessing {
 		}
 		return dniCortado;
 	}
+	
 	Mat cropPreOCRBack(Mat dni)
 	{
 		Mat dniCortado = new Mat(), dniResize = new Mat();
@@ -394,6 +494,7 @@ public class ImageProcessing {
 		}
 		return dniCortado;
 	}
+	
 	Mat imageProcessingPreOCR (Mat dniCortado, double valorThresh)
 	{
 		
@@ -437,7 +538,7 @@ public class ImageProcessing {
 		}
 	}
  	
-	public BufferedImage Mat2BufferedImage(Mat m) {
+	public static BufferedImage Mat2BufferedImage(Mat m) {
 		// source:
 		// http://answers.opencv.org/question/10344/opencv-java-load-image-to-gui/
 		// Fastest code
@@ -457,7 +558,7 @@ public class ImageProcessing {
 
 	}
 
-	public void displayImage(Image img2, String title) {
+	public static void displayImage(Image img2, String title) {
 
 		ImageIcon icon = new ImageIcon(img2);
 		JFrame frame = new JFrame();
@@ -471,9 +572,7 @@ public class ImageProcessing {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 	}
-	public Scanner getSc() {
-		return sc;
-	}
+	
 }
  
 

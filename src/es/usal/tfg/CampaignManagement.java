@@ -68,14 +68,21 @@ import es.usal.tfg.security.PasswordStorage.InvalidHashException;
 public class CampaignManagement {
 
 	public static final String WEBSERVICE_ABSOLUTE_ROUTE = "/demos";
-	public static HashMap<String ,Campaign> campañas = new HashMap<>();
-	public static HashSet<String> activeTokens = new HashSet<>();
+	public static final String SEPARADOR = "------------------------------------------------------------";
+	private static HashMap<String ,Campaign> campañas = new HashMap<>();
+	private static HashSet<String> activeTokens = new HashSet<>();
 	private static final Object lockCampañas = new Object();
 	private static final Object lockTokens = new Object();
 	//Archivo que actua como base de datos de las campañas
 	private static final File campaignsFile = new File(WEBSERVICE_ABSOLUTE_ROUTE + "/campaigns.json");
 	private static final Object lockCampaignsFile = new Object();
 	
+	
+	public static Campaign getCampaña(String campaignName) {
+		synchronized (lockCampañas) {
+			return campañas.get(campaignName);
+		}	
+	}
 	
 	public CampaignManagement() {
 		
@@ -92,6 +99,7 @@ public class CampaignManagement {
 	@Consumes("application/x-www-form-urlencoded")	
 	public Response register (@FormParam("campaign") String campaignName64, @FormParam("password") String password64) {
 		
+		System.out.println(SEPARADOR);
 		
 		System.out.println(campaignName64 + ":" +password64);
 		
@@ -101,12 +109,6 @@ public class CampaignManagement {
 		
 		System.out.println(campaignName + ":" +password);
 		
-		System.out.println("Valores en hashmap:");
-		for (Iterator<Entry<String, Campaign>> iterator = campañas.entrySet().iterator(); iterator.hasNext();) {
-			String type = (String) iterator.next().getKey();
-			System.out.println(type+ " contains: " + campañas.containsKey(type));
-			
-		}
 		
 		synchronized (lockCampañas) {
 		
@@ -360,6 +362,8 @@ public class CampaignManagement {
 			}
 
 			else {
+				
+				System.out.println(SEPARADOR);
 				try {
 					cis = SymmetricEncryption.decryptFileUsingKey(campaignsFile, "master_key");
 				} catch (InvalidKeyException | IllegalArgumentException | KeyStoreException | NoSuchAlgorithmException
@@ -399,6 +403,7 @@ public class CampaignManagement {
 			reader.setLenient(true);
 			try {
 				System.out.println("Empezando a recorrer campaigns.json");
+				Set<PosixFilePermission> perms = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE);
 				while(reader.hasNext()){
 					JsonToken tokenJson =  reader.peek();
 					if (!tokenJson.equals(JsonToken.BEGIN_OBJECT)) {
@@ -409,6 +414,35 @@ public class CampaignManagement {
 					System.out.println(c.toString());
 					
 					Campaign campaign = new Campaign(c.getCampaignName(), new File(WEBSERVICE_ABSOLUTE_ROUTE+ "/campanias/" + c.getCampaignName()));
+					
+					
+					
+					//TODO System.out.println(campaign.getDataBase().getParentFile().getAbsolutePath());
+					if (!campaign.getDirectory().exists()) {
+						System.out.println("Creando directorio: "+campaign.getDirectory().getAbsolutePath());
+						Files.createDirectories(campaign.getDirectory().toPath(), PosixFilePermissions.asFileAttribute(perms));
+					}
+					
+					if (!campaign.getDataBase().exists()) {
+						//TODO System.out.println(campaign.getDataBase().getAbsolutePath());
+						
+						System.out.println("Creando fichero: "+campaign.getDataBase().getAbsolutePath());
+						Files.createFile(campaign.getDataBase().toPath(), PosixFilePermissions.asFileAttribute(perms));
+						
+						try {
+							SymmetricEncryption.encryptFileUsingKey(campaign.getDataBase(), campaign.getCampaignName());
+						} catch (InvalidKeyException | NoSuchAlgorithmException | KeyStoreException
+								| CertificateException | NoSuchPaddingException | InvalidAlgorithmParameterException
+								| UnrecoverableEntryException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						System.out.println("Creado fichero");
+					}
+					
+					
+					
+					
 					
 					synchronized (lockCampañas) {
 						campañas.put(campaign.getCampaignName(), campaign);
@@ -446,6 +480,7 @@ public class CampaignManagement {
 		String campaignName = new String(Base64.getUrlDecoder().decode(campaignName64));
 		String password = new String(Base64.getUrlDecoder().decode(password64));
 		
+		System.out.println(SEPARADOR);
 		System.out.println("Encoded: "+campaignName64 +  ":" + password64);
 		System.out.println("Decoded: "+campaignName + ":" + password);
 		
@@ -579,6 +614,7 @@ public class CampaignManagement {
 	@Consumes("application/x-www-form-urlencoded")
 	public Response authenticateToken (@FormParam("token") String token, @FormParam("campaign") String campaignName64) {
 		
+		System.out.println(SEPARADOR);
 		System.out.println("Token es: "+token);
 		boolean contains = false;
 		synchronized (lockTokens) {
@@ -662,9 +698,75 @@ public class CampaignManagement {
 		
 	}
 
-	public static boolean compruebaToken (String token) {
+	public static boolean compruebaTokenInterno (String token, String campaignName) {
+		boolean contains = false;
+		System.out.println("Campaign es: " + campaignName+ " Token es: "+token);
 		synchronized (lockTokens) {
-			return activeTokens.contains(token);
+			contains = activeTokens.contains(token);
+		}	
+		
+		//Si el token esta en el set de tokens activos devolvemos true
+		if (contains) {
+			System.out.println("token en activetokens");
+			return true;
+		}
+		//Si no pasamos a desencriptar el token
+		else{
+			System.out.println("token NO en activetokens");
+			//String campaignName = new String(Base64.getUrlDecoder().decode(campaignName64));
+			byte [] tokenDecrypted = null;
+			try {
+				tokenDecrypted = SymmetricEncryption.decryptUsingKey(Base64.getUrlDecoder().decode(token), campaignName);
+			} catch (InvalidKeyException | KeyStoreException | NoSuchAlgorithmException | CertificateException
+					| UnrecoverableEntryException | NoSuchPaddingException | InvalidAlgorithmParameterException
+					| IllegalBlockSizeException | BadPaddingException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return false;
+				
+				
+			}
+			
+			String campaignToken = null;
+			try {
+				campaignToken = new String(tokenDecrypted, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				
+				return false;
+			}
+			
+			System.out.println("Campaña: "+campaignName+ " token desencriptado: "+campaignToken);
+			if (campaignToken.equals(campaignName)) {
+				
+				contains = false;
+				synchronized (lockCampañas) {
+					contains = campañas.containsKey(campaignToken);
+				}
+				
+				if(contains){
+				
+					synchronized (lockTokens) {
+						activeTokens.add(token);
+					}
+					
+					System.out.println("token añadido a activos");
+					return true;
+				}
+				else
+				{
+					System.out.println("No existe campaña con ese token");
+					return false;
+				}
+				
+			}
+			else {
+				
+				System.out.println("No coinciden el token desencriptado y la campaña");
+				return false;
+			}
+			
 		}
 	}
 }
