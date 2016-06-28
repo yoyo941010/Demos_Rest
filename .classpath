@@ -47,5 +47,8 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/logback-core-1.1.6.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/slf4j-api-1.7.19.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/tess4j-3.1.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/boxable-1.4.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/pdfbox-app-2.0.2.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/guava-19.0.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

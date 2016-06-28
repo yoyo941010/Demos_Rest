@@ -21,9 +21,11 @@ import es.usal.tfg.security.SymmetricEncryption;
 
 public class SaveEncryptedImage implements Runnable {
 
-	Mat image;
-	File destination;
-	Campaign campaign; 
+	private Mat image;
+	private File destination;
+	private Campaign campaign;
+	private boolean exito = false;
+	
 	public SaveEncryptedImage(Mat image, File destination, Campaign campaign){
 		this.image = image;
 		this.destination = destination;
@@ -47,6 +49,7 @@ public class SaveEncryptedImage implements Runnable {
 			ImageIO.setUseCache(false);
 			ImageIO.write(dniImage, "jpg", cos);
 			
+			exito=true;
 		} catch (InvalidKeyException | NoSuchAlgorithmException | KeyStoreException | CertificateException
 				| NoSuchPaddingException | InvalidAlgorithmParameterException | UnrecoverableEntryException
 				| IOException e1) {
@@ -62,5 +65,9 @@ public class SaveEncryptedImage implements Runnable {
 		}
 		
 		return;
+	}
+	
+	public boolean isExito() {
+		return exito;
 	}
 }

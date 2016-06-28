@@ -6,11 +6,8 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyStoreException;
@@ -19,14 +16,12 @@ import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -45,20 +40,17 @@ import org.opencv.imgproc.Imgproc;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 
-import es.usal.tfg.imageProcessing.Hilo.CaraDni;
-import es.usal.tfg.security.SymmetricEncryption;
 import es.usal.tfg.Campaign;
-import es.usal.tfg.CampaignCredentials;
 import es.usal.tfg.CampaignManagement;
-import es.usal.tfg.FileUpload;
-import es.usal.tfg.imageProcessing.Firma;
+import es.usal.tfg.files.PDFThread;
+import es.usal.tfg.imageProcessing.ImageProcessingThread.CaraDni;
+import es.usal.tfg.security.SymmetricEncryption;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 
-
+@SuppressWarnings("unused")
 public class ImageProcessing {
 
 	public static final boolean DEBUG = false;
@@ -78,6 +70,7 @@ public class ImageProcessing {
 	public static final int ERROR_AMBOS = 5;
 	
 	// CAMARA 13MPX
+	
 	private static final String DNIE1NORMAL = "img/IMG_20160412_14484728.jpg";
 	private static final String DNIE1VERTICAL = "img/IMG_20160412_144855203.jpg";
 	private static final String DNIE1MAS90 = "img/IMG_20160412_144847286.jpg";
@@ -122,17 +115,19 @@ public class ImageProcessing {
 	private RotatedRect rectangulo;
 	private double correctedAngle;
 	private Campaign campaign;
+	private long numSignPaper;
 	
 	
 	static{
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
 	
-	public ImageProcessing (Campaign c)
+	public ImageProcessing (Campaign c, long numSignPaper)
 	{
 		this.campaign = c;
 		this.rectangulo = new RotatedRect();
 		this.correctedAngle = 0;
+		this.numSignPaper = numSignPaper;
 		
 		
 	}
@@ -169,14 +164,14 @@ public class ImageProcessing {
 			return ERROR_INTERNO;
 		}
 		
-		Hilo hFrontal = new Hilo(dni, this, CaraDni.FRONTAL);
-		Hilo hPosterior = new Hilo(dniDetras, new ImageProcessing(campaign), CaraDni.POSTERIOR);
+		ImageProcessingThread hFrontal = new ImageProcessingThread(dni, this, CaraDni.FRONTAL);
+		ImageProcessingThread hPosterior = new ImageProcessingThread(dniDetras, new ImageProcessing(campaign, numSignPaper), CaraDni.POSTERIOR);
 	
 		new Thread(hFrontal).start();
 		new Thread(hPosterior).start();
 		
 		try {
-			if (Hilo.getSemaforo().tryAcquire(2, DETECTION_TIMEOUT, TimeUnit.SECONDS)==false) {
+			if (ImageProcessingThread.getSemaforo().tryAcquire(2, DETECTION_TIMEOUT, TimeUnit.SECONDS)==false) {
 				System.err.println("Alguno de los hilos ha fallado en su tarea");
 				
 				return ERROR_TIMEOUT;
@@ -234,36 +229,44 @@ public class ImageProcessing {
 			e1.printStackTrace();
 		}
 		
-		
+		if (!sFrontal.isExito() || !sPosterior.isExito()) {
+			//Alguno de los hilos no ha logrado detectar texto
+			
+			System.err.println("Alguno de los hilos que guardan las imagenes ha fallado en su tarea");
+			System.err.println("Exito hilo frontal: "+sFrontal.isExito());
+			System.err.println("Exito hilo posterior: "+sPosterior.isExito());
+			
+			if (!sFrontal.isExito() && !sPosterior.isExito())
+			{
+				return ERROR_AMBOS;
+			}
+			else if (!sFrontal.isExito()) {
+				return ERROR_FRONTAL;
+			}
+			else if (!sPosterior.isExito()) {
+				return ERROR_POSTERIOR;
+			}
+		}
 		tfin = System.currentTimeMillis();
 		System.out.println("Tiempo total guardando encriptado: " + ((double)(tfin-tIni) / 1000)+ " segundos");
-		/*
-		BufferedImage dniFrontalImage = Mat2BufferedImage(dniCortadoFrontal);
-		BufferedImage dniPosteriorImage = Mat2BufferedImage(dniCortadoPosterior);
 		
-		CipherOutputStream cos = null;
-		try {
-			cos = SymmetricEncryption.encryptFileUsingKey(dniFrontalRecordado, campaign.getCampaignName());
-			/**
-			 * Para incrementar velocidad con imagenes pequeñas
-			 * @reference http://stackoverflow.com/questions/18522398/fastest-way-to-read-write-images-from-a-file-into-abufferedimage
-			 * http://docs.oracle.com/javase/8/docs/api/javax/imageio/ImageIO.html
-			 */
-			/*
-			//TODO ImageIO.setUseCache(false);
-			ImageIO.write(dniFrontalImage, "jpg", cos);
-		} catch (InvalidKeyException | NoSuchAlgorithmException | KeyStoreException | CertificateException
-				| NoSuchPaddingException | InvalidAlgorithmParameterException | UnrecoverableEntryException
-				| IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		long numFirmas;
+		synchronized (campaign) {
+			numFirmas = campaign.getNumeroFirmas() + 1;
+			campaign.setNumeroFirmas(numFirmas);
 		}
-		*/
-		//Imgcodecs.imwrite(dniFrontalRecordado.getAbsolutePath(), dniCortadoFrontal);
-		//Imgcodecs.imwrite(dniPosteriorRecordado.getAbsolutePath(), dniCortadoPosterior);
 		
-		Firma firma = new Firma(dniFrontal.getAbsoluteFile(), dniPosterior.getAbsoluteFile(), nombre, apellidos, numDni);
+		//Entran 5 firmas por cada hoja
+		long numHojaDNI = numFirmas/ PDFThread.NUMERO_DNI_X_HOJA;
 		
+		//Si el modulo es distinto de 0 significa que tenemos que sumar otra hoja
+		if (numFirmas % PDFThread.NUMERO_DNI_X_HOJA > 0) {
+			numHojaDNI++;
+		}
+		//TODO cambiar numero hoja de firma
+		Firma firma = new Firma(dniFrontal.getAbsoluteFile(), dniPosterior.getAbsoluteFile(), nombre, apellidos, numDni,
+				numSignPaper, numHojaDNI);
+
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(firma);
 		System.out.println("\n"+json);
