@@ -45,42 +45,41 @@ public class MaintenanceService implements Runnable {
 	@Override
 	public void run() {
 		
-		System.out.println(CampaignManagement.SEPARADOR);
-		System.err.println("["+new Date().toString()+"] Mantenimiento: "+Thread.currentThread().getName()+" iniciando");
+		
+		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: iniciando");
 		
 		
 		//Borrado de la estructura de datos activeTokens
 		CampaignManagement.clearActiveToken();
 		
-		System.out.println(CampaignManagement.SEPARADOR);
-		System.err.println("["+new Date().toString()+"] Mantenimiento: tokens activos borrados");
+		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: tokens activos borrados");
 				
 		//Se obtienen todos los FutureTask encargados de generar PDFs que haya actualmente para ir
 		//cancelandoloos si no han acabado y posteriormente borrar todos los pdfs así como la 
 		//estructura de datos downloadTokens
 		Collection<FutureTask<File>> pdfs = CampaignManagement.getAllPDFFuture();
 		
-		System.out.println("["+new Date().toString()+"] Mantenimiento: futuretask recuperadas");
+		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: futuretask recuperadas");
 		for (FutureTask<File> pdf : pdfs) {
 			System.out.println(pdf.toString());
 			if (!pdf.isDone()) {
 				
 				if(pdf.cancel(true)){
-					System.out.println(CampaignManagement.SEPARADOR);
-					System.out.println("["+new Date().toString()+"] Mantenimiento: Tarea PDF parada");
+					
+					System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Tarea PDF parada");
 					
 				}
 				else{
-					System.out.println(CampaignManagement.SEPARADOR);
-					System.err.println("["+new Date().toString()+"] Mantenimiento: Error parando Tarea PDF");
+					
+					System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error parando Tarea PDF");
 					
 				}
 			}
 		}
 		
 
-		System.out.println(CampaignManagement.SEPARADOR);
-		System.out.println("["+new Date().toString()+"] Mantenimiento: Todas las tareas PDF paradas");
+		
+		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Todas las tareas PDF paradas");
 		
 		
 		File campaingsDirectory = new File(CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE+"/campanias");
@@ -89,21 +88,18 @@ public class MaintenanceService implements Runnable {
 			borrarPDFs(campaingsDirectory);
 		} catch (IOException e) {
 			
-			System.out.println(CampaignManagement.SEPARADOR);
-			System.err.println("["+new Date().toString()+"] Mantenimiento: Error borrando PDFs");
+			System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error borrando PDFs");
 		
 			e.printStackTrace();
 			System.out.println(CampaignManagement.SEPARADOR);
 		}
 		
-		System.out.println(CampaignManagement.SEPARADOR);
-		System.out.println("["+new Date().toString()+"] Mantenimiento: Todos los PDF borrados");
+		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Todos los PDF borrados");
 		
 		
 		CampaignManagement.clearDownloadToken();
 		
-		System.out.println(CampaignManagement.SEPARADOR);
-		System.err.println("["+new Date().toString()+"] Mantenimiento: tokens de descarga borrados");
+		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: tokens de descarga borrados");
 		
 
 		// A continuación se lee el la base de datos de campañas comprobando que
@@ -125,115 +121,119 @@ public class MaintenanceService implements Runnable {
 		
 		synchronized (CampaignManagement.lockCampaignsFile) {
 			
-			try {
-				Files.createFile(newCampaignsFile.toPath(), PosixFilePermissions.asFileAttribute(permsRW));
-				cos = SymmetricEncryption.encryptFileUsingKey(newCampaignsFile, CampaignManagement.masterKeyAlias);
 			
-				cis = SymmetricEncryption.decryptFileUsingKey(originalCampaignsFile, CampaignManagement.masterKeyAlias);
+			if (!CampaignManagement.campañasIsEmpty()) {
 				
-
-			
-				/**
-				 * @see https://sites.google.com/site/gson/streaming
-				 */
-				Gson gson = new Gson();
+				try {
+					Files.createFile(newCampaignsFile.toPath(), PosixFilePermissions.asFileAttribute(permsRW));
+					cos = SymmetricEncryption.encryptFileUsingKey(newCampaignsFile, CampaignManagement.masterKeyAlias);
 				
-				CampaignCredentials c;
-				
-				
-				reader= new JsonReader(new InputStreamReader(cis, "UTF-8"));
-				reader.setLenient(true);
-				
-				wr = new OutputStreamWriter(cos);
-				
+					cis = SymmetricEncryption.decryptFileUsingKey(originalCampaignsFile, CampaignManagement.masterKeyAlias);
+					
 	
 				
-				while(reader.hasNext()){
-					JsonToken tokenJson =  reader.peek();
-					if (!tokenJson.equals(JsonToken.BEGIN_OBJECT)) {
-						break;
+					/**
+					 * @see https://sites.google.com/site/gson/streaming
+					 */
+					Gson gson = new Gson();
+					
+					CampaignCredentials c;
+					
+					
+					reader= new JsonReader(new InputStreamReader(cis, "UTF-8"));
+					reader.setLenient(true);
+					
+					wr = new OutputStreamWriter(cos);
+					
+		
+					
+					while(reader.hasNext()){
+						JsonToken tokenJson =  reader.peek();
+						if (!tokenJson.equals(JsonToken.BEGIN_OBJECT)) {
+							break;
+						}
+						c = gson.fromJson(reader, CampaignCredentials.class);
+	
+						String deleteDateStr = c.getDeleteDate();
+						
+						Date deleteDate = CampaignManagement.dateFormat.parse(deleteDateStr);
+						
+						Date fechaActual = new Date();
+						
+						// Si la fecha de borrado no es posterior a la actual
+						// entonces se borra la campaña, en caso contrario se 
+						// escribe al fichero temporal
+						
+						if (!deleteDate.after(fechaActual)) {
+							CampaignManagement.borrarArchivosCampaña(CampaignManagement.getCampaña(c.getCampaignName()));
+	
+							CampaignManagement.deleteCampaña(c.getCampaignName());
+							
+							System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: borrada campaña "+c.getCampaignName());
+	
+						
+						}
+						else {
+							gson.toJson(c, wr);
+	
+							System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: guardada campaña "+c.getCampaignName());
+	
+							
+						}
 					}
-					c = gson.fromJson(reader, CampaignCredentials.class);
-
-					String deleteDateStr = c.getDeleteDate();
 					
-					Date deleteDate = CampaignManagement.dateFormat.parse(deleteDateStr);
 					
-					Date fechaActual = new Date();
+				
+				} catch (IOException | InvalidKeyException | NoSuchAlgorithmException | KeyStoreException
+						| CertificateException | NoSuchPaddingException | InvalidAlgorithmParameterException
+						| UnrecoverableEntryException | ParseException e) {
 					
-					// Si la fecha de borrado no es posterior a la actual
-					// entonces se borra la campaña, en caso contrario se 
-					// escribe al fichero temporal
 					
-					if (!deleteDate.after(fechaActual)) {
-						CampaignManagement.borrarArchivosCampaña(CampaignManagement.getCampaña(c.getCampaignName()));
-
-						CampaignManagement.deleteCampaña(c.getCampaignName());
-						System.out.println(CampaignManagement.SEPARADOR);
-						System.out.println("["+new Date().toString()+"] Mantenimiento: borrada campaña "+c.getCampaignName());
-
-						System.out.println(CampaignManagement.SEPARADOR);
-					}
-					else {
-						gson.toJson(c, wr);
-
-						System.out.println(CampaignManagement.SEPARADOR);
-						System.out.println("["+new Date().toString()+"] Mantenimiento: guardada campaña "+c.getCampaignName());
-
-						System.out.println(CampaignManagement.SEPARADOR);
-					}
+					System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error comprobando fechas de campañas");
+					e.printStackTrace();
+					System.out.println(CampaignManagement.SEPARADOR);
+				} finally {
+					try {
+						if(reader!= null){
+							reader.close();
+						}
+						if (cis!=null) {
+							cis.close();
+						}
+						
+						if (wr!=null) {
+							wr.flush();
+							wr.close();
+						}
+						
+						if (cos!=null) {
+							cos.flush();
+							cos.close();
+						}
+					} catch (IOException e){}
 				}
 				
 				
-			
-			} catch (IOException | InvalidKeyException | NoSuchAlgorithmException | KeyStoreException
-					| CertificateException | NoSuchPaddingException | InvalidAlgorithmParameterException
-					| UnrecoverableEntryException | ParseException e) {
-				
-				System.out.println(CampaignManagement.SEPARADOR);
-				System.out.println("["+new Date().toString()+"] Mantenimiento: Error comprobando fechas de campañas");
-				e.printStackTrace();
-				System.out.println(CampaignManagement.SEPARADOR);
-			} finally {
 				try {
-					if(reader!= null){
-						reader.close();
-					}
-					if (cis!=null) {
-						cis.close();
-					}
-					
-					if (wr!=null) {
-						wr.flush();
-						wr.close();
-					}
-					
-					if (cos!=null) {
-						cos.flush();
-						cos.close();
-					}
-				} catch (IOException e){}
-			}
-			
-			
-			try {
-				/**
-				 * @see https://docs.oracle.com/javase/tutorial/essential/io/move.html
-				 */
-				Files.move(newCampaignsFile.toPath(), originalCampaignsFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				System.out.println(CampaignManagement.SEPARADOR);
-				System.err.println("["+new Date().toString()+"] Mantenimiento: Base de datos de campañas actualizada");
-				System.out.println(CampaignManagement.SEPARADOR);
-			} catch (IOException e) {
-				System.out.println(CampaignManagement.SEPARADOR);
-				System.err.println("["+new Date().toString()+"] Mantenimiento: Error sobreescribiendo base de datos de campañas");
-				e.printStackTrace();
-				System.out.println(CampaignManagement.SEPARADOR);
+					/**
+					 * @see https://docs.oracle.com/javase/tutorial/essential/io/move.html
+					 */
+					Files.move(newCampaignsFile.toPath(), originalCampaignsFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				
+					System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Base de datos de campañas actualizada");
+					
+				} catch (IOException e) {
+					
+					System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error sobreescribiendo base de datos de campañas");
+					e.printStackTrace();
+					System.out.println(CampaignManagement.SEPARADOR);
+					
+				}
+					
+			} else {
+				System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: no existe ninguna campaña");
 			}
-				
 		}
-		
 	}
 	
 
@@ -258,9 +258,9 @@ public class MaintenanceService implements Runnable {
 		        		
 		        		try {
 							Files.delete(file);
-							System.out.println("["+new Date().toString()+"] Mantenimiento: borrado "+file.toAbsolutePath().toString());
+							System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: borrado "+file.toAbsolutePath().toString());
 						} catch (Exception e) {
-							System.err.println("["+new Date().toString()+"] Mantenimiento: Error borrando "+file.toAbsolutePath().toString());
+							System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error borrando "+file.toAbsolutePath().toString());
 							e.printStackTrace();
 						}
 					}
@@ -277,7 +277,13 @@ public class MaintenanceService implements Runnable {
 		        	String extension =FilenameUtils.getExtension(file.toString());
 		            
 		        	if (extension.equalsIgnoreCase("pdf")) {
-		        		Files.delete(file);
+		        		try {
+							Files.delete(file);
+							System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: borrado "+file.toAbsolutePath().toString());
+						} catch (Exception e) {
+							System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error borrando "+file.toAbsolutePath().toString());
+							e.printStackTrace();
+						}
 					}
 		            return FileVisitResult.CONTINUE;
 		        }

@@ -111,6 +111,11 @@ public class CampaignManagement implements ServletContextListener {
 		return campaignsFile;
 	}
 	
+	static boolean campañasIsEmpty (){
+		synchronized (lockCampañas) {
+			return campañas.isEmpty();
+		}
+	}
 	public static Campaign getCampaña(String campaignName) {
 		
 		synchronized (lockCampañas) {
@@ -172,7 +177,7 @@ public class CampaignManagement implements ServletContextListener {
 			rellenarHashMap();
 			MaintenanceService maintenance = new MaintenanceService();
 			taskExecutor = new MyTaskExecutor(maintenance);
-			taskExecutor.startScheduleExecutionAt(10, 05, 0);
+			taskExecutor.startScheduleExecutionAt(11, 0, 0);
 			instance = this;
 		}
 		

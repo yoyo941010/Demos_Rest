@@ -1,6 +1,7 @@
 package es.usal.tfg;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -72,8 +73,8 @@ public class MyTaskExecutor
             {
             	
                 maintenanceTask.run();
-                System.out.println(CampaignManagement.SEPARADOR);
-				System.err.println("["+new Date().toString()+"] Mantenimiento: acabado");
+                
+                System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: acabado");
                 startScheduleExecutionAt(targetHour, targetMin, targetSec);
             }
 
