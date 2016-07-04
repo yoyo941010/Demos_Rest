@@ -1,15 +1,21 @@
+/*
+ * Archivo: MyTaskExecutor.java 
+ * Proyecto: Demos_Rest
+ * 
+ * Autor: Aythami Estévez Olivas
+ * Email: aythae@gmail.com
+ * Fecha: 04-jul-2016
+ * Repositorio GitHub: https://github.com/AythaE/Demos_Rest
+ */
 package es.usal.tfg;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Date;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledFuture;
@@ -17,23 +23,48 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import es.usal.tfg.files.PDFThread;
+
 /**
  * Wrapper class to control ScheduledExecutorService taking into account the
  * daylight saving issues because it calculate the delay until the desired time
- * every day
- * 
+ * every day.
+ *
  * @author Sage
- * @see http://stackoverflow.com/a/20388073/6441806
+ * @see <a href="http://stackoverflow.com/a/20388073/6441806">Referencia</a>
  */
 public class MyTaskExecutor
 {
+	
+	/** The executor scheduled encargado de ejecutar la tarea periodica. */
 	private ScheduledThreadPoolExecutor executorScheduled = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
-	private static final int NUM_PDF_THREADS = 1;
+	
+	/**
+	 * The Constant NUM_PDF_THREADS que controla el número máximo de hilos PDF
+	 * que puede haber simultaneamente.
+	 * 
+	 * @see PDFThread
+	 */
+	private static final int NUM_PDF_THREADS = 5;
+	
+	/** 
+	 * The executor encargado de ejecutar los hilos PDF.
+	 * @see PDFThread
+	 */
 	private static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(NUM_PDF_THREADS);
+	
+	/** The future schedule task generada al programar la tarea periódica*/
 	private ScheduledFuture<?> futureScheduleTask;
+    
+    /** The maintenance task, instancia de {@link MaintenanceService} */
     private MaintenanceService maintenanceTask;
     
 
+    /**
+     * Instantiates a new my task executor.
+     *
+     * @param myTask$ instancia de {@link MaintenanceService}
+     */
     public MyTaskExecutor(MaintenanceService myTask$) 
     {
         maintenanceTask = myTask$;
@@ -43,10 +74,17 @@ public class MyTaskExecutor
         executorScheduled.setRemoveOnCancelPolicy(true);
     }
     
-    /**
-     * @param task
-     * @see https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ExecutorService.html
-     */
+	/**
+	 * Inicia la ejecución de un hilo PDF.
+	 *
+	 * @param task
+	 *            FutureTask que ejecutará el PDFThread
+	 * @return true, si arranca correctamente, o false, en caso contrario
+	 * @see <a href=
+	 *      "https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ExecutorService.html">
+	 *      Referencia</a>
+	 * @see PDFThread
+	 */
     public static boolean startExecution (FutureTask< File > task){
     	if (executor.getActiveCount() >= NUM_PDF_THREADS) {
 			return false;
@@ -58,11 +96,11 @@ public class MyTaskExecutor
     /**
      * Schedule a thread that execute the maintenanceTask and at the end 
      * it calculate the next delay and program itself to execute at that
-     * time
-     * 
-     * @param targetHour
-     * @param targetMin
-     * @param targetSec
+     * time.
+     *
+     * @param targetHour the target hour
+     * @param targetMin the target min
+     * @param targetSec the target sec
      */
     public void startScheduleExecutionAt(int targetHour, int targetMin, int targetSec)
     {
@@ -74,7 +112,7 @@ public class MyTaskExecutor
             	
                 maintenanceTask.run();
                 
-                System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: acabado");
+                System.out.println("["+new Date().toString()+"] Mantenimiento: acabado");
                 startScheduleExecutionAt(targetHour, targetMin, targetSec);
             }
 
@@ -84,6 +122,14 @@ public class MyTaskExecutor
        
     }
 
+    /**
+     * Compute next delay.
+     *
+     * @param targetHour the target hour
+     * @param targetMin the target min
+     * @param targetSec the target sec
+     * @return the delay in seconds
+     */
     private long computeNextDelay(int targetHour, int targetMin, int targetSec) 
     {
         LocalDateTime localNow = LocalDateTime.now();
@@ -97,6 +143,13 @@ public class MyTaskExecutor
         return duration.getSeconds();
     }
 
+    /**
+     * Para todos los hilos creados y apaga 
+     * {@link MyTaskExecutor#executorScheduled} y {@link MyTaskExecutor#executor}
+     * despues espera un tiempo a que sus hilos acaben en caso de existir alguno
+     * ejecutandose. Si tras ese tiempo aún no han acabado sale pero se 
+     * produciria un MemoryLeak que Tomcat detectaría al apagarse
+     */
     public void stop()
     {
         executorScheduled.shutdown();

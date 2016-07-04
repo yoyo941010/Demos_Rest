@@ -1,11 +1,18 @@
+/*
+ * Archivo: SymmetricEncryption.java 
+ * Proyecto: Demos_Rest
+ * 
+ * Autor: Aythami Estévez Olivas
+ * Email: aythae@gmail.com
+ * Fecha: 04-jul-2016
+ * Repositorio GitHub: https://github.com/AythaE/Demos_Rest
+ */
 package es.usal.tfg.security;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -33,18 +40,81 @@ import javax.crypto.spec.IvParameterSpec;
 
 import es.usal.tfg.CampaignManagement;
 
+/**
+ * Clase SymmetricEncryption creada para las tareas de encriptado y
+ * desencriptado con
+ * <a href="https://es.wikipedia.org/wiki/Advanced_Encryption_Standard">AES</a>
+ * necesarias en el servidor.
+ * <p>
+ * Contiene los métodos para
+ *  <ul>
+ *  	<li>Configurar el {@link KeyStore}</li>
+ *  	<li>Encriptar / desencriptar ficheros usando una clave concreta o 
+ *  		generando y guardando</li>
+ *  	<li>Encriptar / desencriptar arrays de bytes usando una clave concreta
+ *  	</li>
+ *  </ul>  
+ * 
+ * La creación de esta clase se ha inspirado en los consejos de <a href=
+ * "https://www.owasp.org/index.php/Using_the_Java_Cryptographic_Extensions">
+ * OWASP</a> 
+ *
+ */
 public class SymmetricEncryption {
 	
+	/** The Constant AES_KEYLENGTH que controla el tamaño de clave  */
 	private static final int AES_KEYLENGTH = 128;	// change this as desired for the security level you want
+	
+	/** 
+	 * The Constant KEYSTORE_PASS que contiene la ruta de la contraseña de 
+	 * {@link SymmetricEncryption#keyStoreFile}. 
+	 * <p>
+	 * Cada vez que se lee esta contraseña para extraer o guardar una clave del
+	 * keystore se borra de memoria nada más completar la operación para reducir
+	 * al máximo posible el tiempo que está cargada en memoria
+	 */
 	private static final String KEYSTORE_PASS = "/etc/tomcat8/.DemosKey";
+	
+	/**
+	 * The Constant KEYSTORE_FILE que contiene la ruta de 
+	 * {@link SymmetricEncryption#keyStoreFile}
+	 */
 	private static final String KEYSTORE_FILE = CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE + "/.keystore";
+	
+	/**
+	 * The Constant keyStoreFile que referencia al fichero donde se almacena la
+	 * {@link KeyStore}
+	 */
 	private static final File keyStoreFile = new File(KEYSTORE_FILE);
+	
+	/** The Constant keyStoreLock. */
+	/** 
+	 * The Constant keyStoreLock que actua como lock para los bloques 
+	 * syncronized en las lecturas o modificaciones del keystore 
+	 * {@link SymmetricEncryption#keyStoreFile} de forma sincronizada en
+	 * los distintos hilos
+	 */
 	private static final Object keyStoreLock = new Object();
 
+	/**
+	 * Gets the keystorefile.
+	 *
+	 * @return the keystorefile
+	 */
 	public static File getKeystorefile() {
 		return keyStoreFile;
 	}
 
+	/**
+	 * Crea el fichero {@link SymmetricEncryption#keyStoreFile} y genera la 
+	 * clave "master_key", usada para encriptar la base de datos de campañas
+	 * guardandola en el recien creado KeyStore.
+	 *
+	 * @throws NoSuchAlgorithmException the no such algorithm exception
+	 * @throws KeyStoreException the key store exception
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws CertificateException the certificate exception
+	 */
 	public static void configureKeyStore() throws NoSuchAlgorithmException, KeyStoreException, IOException, CertificateException {
 
 	
@@ -60,21 +130,11 @@ public class SymmetricEncryption {
 
 			
 			
-			/**
-			 * Step 2. Generate an Initialization Vector (IV) 
-			 * 		a. Use SecureRandom to generate random bits
-			 * 		   The size of the IV matches the blocksize of the cipher (128 bits for AES)
-			 * 		b. Construct the appropriate IvParameterSpec object for the data to pass to Cipher's init() method
-			 */
-
 			
-			byte[] iv = new byte[AES_KEYLENGTH / 8];	// Save the IV bytes or send it in plaintext with the encrypted data so you can decrypt the data later
-			SecureRandom prng = new SecureRandom();
-			prng.nextBytes(iv);
 			
 			
 			/**
-			 * Step 3. Store the master secret key used to encrypt campaign.json to a keystore
+			 * Step 2. Store the master secret key used to encrypt campaign.json to a keystore
 			 * 		a. Create a Keystore in JCEKS format to store SecretKeys for AES encryption
 			 * 		b. Protect this Keystore with a master pass 
 			 * 		
@@ -82,7 +142,6 @@ public class SymmetricEncryption {
 			 
 			
 			String keyStoreType = "JCEKS";
-			//File keyFile = new File(KEYSTORE_FILE);
             KeyStore keyStore;
             FileOutputStream fos=null;
             BufferedReader br=null;
@@ -140,6 +199,24 @@ public class SymmetricEncryption {
 
 	}
 
+	/**
+	 * Encripta un fichero generando y guardando una clave en el Keystore 
+	 * devolviendo un {@link CipherOutputStream} en el que escribir bytes y el
+	 * cual se encarga de encriptar los bytes que recibe antes de escribirlos 
+	 * en disco
+	 *
+	 * @param file fichero a encriptar
+	 * @param keyAlias Alias de la clave que se generará
+	 * @return the cipher output stream 
+	 * 
+	 * @throws NoSuchAlgorithmException the no such algorithm exception
+	 * @throws KeyStoreException the key store exception
+	 * @throws CertificateException the certificate exception
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws NoSuchPaddingException the no such padding exception
+	 * @throws InvalidKeyException the invalid key exception
+	 * @throws InvalidAlgorithmParameterException the invalid algorithm parameter exception
+	 */
 	public static CipherOutputStream encryptFileSavingKey(File file, String keyAlias)
 			throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException,
 			NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
@@ -172,7 +249,6 @@ public class SymmetricEncryption {
 		 * 
 		 */
 
-		//File keyFile = new File(KEYSTORE_FILE);
 		KeyStore keyStore = null;
 
 		FileInputStream fis = null;
@@ -262,6 +338,24 @@ public class SymmetricEncryption {
 
 	}
 	
+	/**
+	 * Encripta un fichero usando una clave del Keystore y devolviendo un 
+	 * {@link CipherOutputStream} en el que escribir bytes y el cual se encarga
+	 * de encriptar los bytes que recibe antes de escribirlos en disco
+	 *
+	 * @param file fichero a encriptar
+	 * @param keyAlias Alias de la clave que se usará
+	 * @return the cipher output stream 
+	 
+	 * @throws NoSuchAlgorithmException the no such algorithm exception
+	 * @throws KeyStoreException the key store exception
+	 * @throws CertificateException the certificate exception
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws NoSuchPaddingException the no such padding exception
+	 * @throws InvalidKeyException the invalid key exception
+	 * @throws InvalidAlgorithmParameterException the invalid algorithm parameter exception
+	 * @throws UnrecoverableEntryException the unrecoverable entry exception
+	 */
 	public static CipherOutputStream encryptFileUsingKey(File file, String keyAlias)
 			throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException,
 			NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnrecoverableEntryException {
@@ -284,7 +378,7 @@ public class SymmetricEncryption {
 		 * 
 		 */
 
-		//File keyFile = new File(KEYSTORE_FILE);
+
 		KeyStore keyStore = null;
 
 		FileInputStream fis = null;
@@ -365,6 +459,25 @@ public class SymmetricEncryption {
 
 	}
 	
+	/**
+	 * Encripta un array de bytes usando una clave del Keystore y devolviendo 
+	 * dicho array encriptado.
+	 *
+	 * @param input el array de bytes de entrada
+	 * @param keyAlias the key alias de la clave a utilizar
+	 * @return the byte[] array de bytes de salida
+	 * 
+	 * @throws NoSuchAlgorithmException the no such algorithm exception
+	 * @throws KeyStoreException the key store exception
+	 * @throws CertificateException the certificate exception
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws NoSuchPaddingException the no such padding exception
+	 * @throws InvalidKeyException the invalid key exception
+	 * @throws InvalidAlgorithmParameterException the invalid algorithm parameter exception
+	 * @throws UnrecoverableEntryException the unrecoverable entry exception
+	 * @throws IllegalBlockSizeException the illegal block size exception
+	 * @throws BadPaddingException the bad padding exception
+	 */
 	public static byte[] encryptUsingKey(byte[] input, String keyAlias)
 			throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException,
 			NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException,
@@ -387,7 +500,6 @@ public class SymmetricEncryption {
 		 * 
 		 */
 
-		//File keyFile = new File(KEYSTORE_FILE);
 		KeyStore keyStore = null;
 
 		FileInputStream fis = null;
@@ -474,6 +586,24 @@ public class SymmetricEncryption {
 	
 	
 	
+	/**
+	 * Desencripta un fichero usando una clave del Keystore y devolviendo un
+	 * {@link CipherInputStream} del que leer bytes los cuales se desencriptan
+	 * antes de recibirse.
+	 *
+	 * @param file fichero a desencriptar
+	 * @param keyAlias Alias de la clave que se usará
+	 * @return the cipher input stream
+	 * 
+	 * @throws KeyStoreException the key store exception
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws NoSuchAlgorithmException the no such algorithm exception
+	 * @throws CertificateException the certificate exception
+	 * @throws UnrecoverableEntryException the unrecoverable entry exception
+	 * @throws NoSuchPaddingException the no such padding exception
+	 * @throws InvalidKeyException the invalid key exception
+	 * @throws InvalidAlgorithmParameterException the invalid algorithm parameter exception
+	 */
 	public static CipherInputStream decryptFileUsingKey(File file, String keyAlias) throws KeyStoreException,
 			IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableEntryException,
 			NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
@@ -484,7 +614,6 @@ public class SymmetricEncryption {
 		 * 
 		 */
 
-		//File keyFile = new File(KEYSTORE_FILE);
 		KeyStore keyStore = null;
 
 		FileInputStream fis = null;
@@ -570,16 +699,7 @@ public class SymmetricEncryption {
 		 * and the cipher initialized above. 
 		 */
 
-		/**
-		 * Reading all bytes to a byte array using a CipherInputStream
-		 * doesn't work the finals blocks are lost. The solution is copying
-		 * the bytes to a ByteArrayOutputStream and then cast this stream to
-		 * a byte array
-		 * 
-		 * @reference http://stackoverflow.com/a/34030041/6441806
-		 */
-		//TODO ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-		//byte[] b = new byte[1024];
+		
 		CipherInputStream cis = null;
 		
 		fis = new FileInputStream(file);
@@ -588,20 +708,31 @@ public class SymmetricEncryption {
 		fis.read(iv);
 		
 		cis = new CipherInputStream(fis, aesCipherForDecryption);
-		/*
-		int readedB = 0;
-		while ((readedB = cis.read(b)) >= 0) {
-			buffer.write(b, 0, readedB);
-		}
-		
-
-			*/
 		
 
 		return cis;
 
 	}
 	
+	/**
+	 * Desencripta un array de bytes usando una clave del Keystore y devolviendo
+	 * dicho array desencriptado
+	 *
+	 * @param input el array de bytes de entrada
+	 * @param keyAlias the key alias de la clave a utilizar
+	 * @return the byte[] array de bytes de salida
+	 * 
+	 * @throws KeyStoreException the key store exception
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws NoSuchAlgorithmException the no such algorithm exception
+	 * @throws CertificateException the certificate exception
+	 * @throws UnrecoverableEntryException the unrecoverable entry exception
+	 * @throws NoSuchPaddingException the no such padding exception
+	 * @throws InvalidKeyException the invalid key exception
+	 * @throws InvalidAlgorithmParameterException the invalid algorithm parameter exception
+	 * @throws IllegalBlockSizeException the illegal block size exception
+	 * @throws BadPaddingException the bad padding exception
+	 */
 	public static byte[] decryptUsingKey(byte[] input, String keyAlias) throws KeyStoreException, IOException,
 			NoSuchAlgorithmException, CertificateException, UnrecoverableEntryException, NoSuchPaddingException,
 			InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
@@ -611,7 +742,6 @@ public class SymmetricEncryption {
 		 * 
 		 */
 
-		//File keyFile = new File(KEYSTORE_FILE);
 		KeyStore keyStore = null;
 
 		FileInputStream fis = null;
@@ -704,23 +834,40 @@ public class SymmetricEncryption {
 	}
 
 	/**
+	 * Abre un fichero para continuar encriptando en él, debido a 
+	 * que el cifrador AES en modo CBC encripta cada bloque dependiendo del 
+	 * anterior existen dos caso:
+	 * <p>
+	 * Si este fichero ya contiene datos encriptados es necesario 
+	 * encontrar el ultimo bloque encriptado y desencriptarlo utilizando como
+	 * IV el penúltimo bloque encriptado. Una vez desencriptado este ultimo 
+	 * bloque se encripta otra vez con el {@link Cipher} recien creado y apartir
+	 * del que se construye un {@link CipherOutputStream} que se devuelve y 
+	 * puede ser usado para continuar encriptando en el fichero.
 	 * 
-	 * @param file
-	 * @param keyAlias
-	 * @return
-	 * @throws KeyStoreException 
-	 * @throws IOException 
-	 * @throws CertificateException 
-	 * @throws NoSuchAlgorithmException 
-	 * @throws UnrecoverableEntryException 
-	 * @throws InvalidAlgorithmParameterException 
-	 * @throws InvalidKeyException 
-	 * @throws NoSuchPaddingException 
-	 * @throws BadPaddingException 
-	 * @throws IllegalBlockSizeException 
+	 * <p>
+	 * En caso de que el fichero solo contenta el IV simplemente se crea un 
+	 * {@link Cipher}, un {@link CipherOutputStream} y se devuelve de igual modo
+	 * que lo harían los métodos de encriptación estandar de fichero.
+	 *
+	 * @param file the file
+	 * @param keyAlias the key alias
+	 * @return the cipher output stream
 	 * 
-	 * @reference 	http://stackoverflow.com/a/4877403/6441806
-	 * 				http://stackoverflow.com/a/10291282/6441806
+	 * @throws IllegalArgumentException the illegal argument exception
+	 * @throws KeyStoreException the key store exception
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @throws NoSuchAlgorithmException the no such algorithm exception
+	 * @throws CertificateException the certificate exception
+	 * @throws UnrecoverableEntryException the unrecoverable entry exception
+	 * @throws InvalidKeyException the invalid key exception
+	 * @throws InvalidAlgorithmParameterException the invalid algorithm parameter exception
+	 * @throws NoSuchPaddingException the no such padding exception
+	 * @throws IllegalBlockSizeException the illegal block size exception
+	 * @throws BadPaddingException the bad padding exception
+	 * 
+	 * @see <a href="http://stackoverflow.com/a/4877403/6441806">http://stackoverflow.com/a/4877403/6441806</a>
+	 * @see <a href="http://stackoverflow.com/a/10291282/6441806">http://stackoverflow.com/a/10291282/6441806</a>
 	 */
 	public static CipherOutputStream appendAES(File file, String keyAlias)
 			throws IllegalArgumentException, KeyStoreException, IOException, NoSuchAlgorithmException,
@@ -728,7 +875,7 @@ public class SymmetricEncryption {
 			NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
 
 		//Recuperar la clave privada designada con keyAlias del KeyStore
-		//File keyFile = new File(KEYSTORE_FILE);
+		
 		KeyStore keyStore=null;
 		SecretKey secretKey = null;
 		FileInputStream fis=null;

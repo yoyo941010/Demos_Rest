@@ -1,3 +1,12 @@
+/*
+ * Archivo: ImageProcessing.java 
+ * Proyecto: Demos_Rest
+ * 
+ * Autor: Aythami Estévez Olivas
+ * Email: aythae@gmail.com
+ * Fecha: 04-jul-2016
+ * Repositorio GitHub: https://github.com/AythaE/Demos_Rest
+ */
 package es.usal.tfg.imageProcessing;
 
 import java.awt.FlowLayout;
@@ -15,6 +24,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -50,78 +60,133 @@ import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 
-@SuppressWarnings("unused")
+/**
+ * Clase ImageProcessing encargada de gestionar todo el procesamiento necesario
+ * para detectar el DNI en una fotograía y posteriormente realizar el proceso 
+ * OCR. También se encarga de guardar esos resultados en la base de datos de la
+ * campaña y guardar las fotos recortadas de forma encriptadas en el directorio
+ * de su campaña.
+ * 
+ */
 public class ImageProcessing {
 
+	/**
+	 * Constante DEBUG usada a lo largo del desarrollo para mostrar por
+	 * pantalla más información sobre el procesamiento y las imagenes
+	 * intermedias generadas.
+	 */
 	public static final boolean DEBUG = false;
-	private static final boolean TOTAL_DEBUG = false;
 	
 	
+	/**
+	 * Constante DETECTION_TIMEOUT que determina el tiempo máximo que se
+	 * esperará a que las instancias de {@link ImageProcessingThread} hayan
+	 * finalizado el proceso de detección y OCR, tras este tiempo se entiende
+	 * que ha fallado el proceso.
+	 */
 	public static final int DETECTION_TIMEOUT = 30;
 	
+	/** 
+	 * Constante RELACIONDEASPECTO que determina la proporción entre el ancho
+	 * y el alto que tiene un DNI. 
+	 */
 	public static final double RELACIONDEASPECTO = 1.581481481;
+	
+	/** 
+	 * Constante MARGENRATIO que indica un margen de variación de 
+	 * {@link ImageProcessing#RELACIONDEASPECTO} aceptable dentro del cual
+	 * el objeto detectado puede ser un DNI. 
+	 */
 	public static final double MARGENRATIO = 0.1;
 	
+	/** 
+	 * Constante CORRECTO usada como valor de retorno para identificar cuando
+	 * el procesamiento ha finalizado correctamente. 
+	 */
 	public static final int CORRECTO = 0;
+	
+
+	/** 
+	 * Constante ERROR_INTERNO usada como valor de retorno para identificar 
+	 * cuando el procesamiento ha finalizado debido a un error interno 
+	 * (indeterminado). 
+	 */
 	public static final int ERROR_INTERNO = 1;
+	
+	/** 
+	 * Constante ERROR_TIMEOUT usada como valor de retorno para identificar 
+	 * cuando el procesamiento ha finalizado debido a que se ha cumpldo el 
+	 * timeout sin que el procesamiento haya concluido. 
+	 */
 	public static final int ERROR_TIMEOUT = 2;
+	
+	/** 
+	 * Constante ERROR_FRONTAL usada como valor de retorno para identificar 
+	 * cuando el procesamiento ha finalizado debido a un error detectado el DNI
+	 *  o realizando el OCR de la cara frontal del DNI
+	 */
 	public static final int ERROR_FRONTAL = 3;
+	
+
+	/** 
+	 * Constante ERROR_POSTERIOR usada como valor de retorno para identificar 
+	 * cuando el procesamiento ha finalizado debido a un error detectado el DNI
+	 *  o realizando el OCR de la cara posterior del DNI
+	 */
 	public static final int ERROR_POSTERIOR = 4;
+	
+	/** 
+	 * Constante ERROR_AMBOS usada como valor de retorno para identificar 
+	 * cuando el procesamiento ha finalizado debido a un error detectado el DNI
+	 *  o realizando el OCR de ambas caras del DNI
+	 */
 	public static final int ERROR_AMBOS = 5;
 	
-	// CAMARA 13MPX
-	
-	private static final String DNIE1NORMAL = "img/IMG_20160412_14484728.jpg";
-	private static final String DNIE1VERTICAL = "img/IMG_20160412_144855203.jpg";
-	private static final String DNIE1MAS90 = "img/IMG_20160412_144847286.jpg";
 
-	// CAMARA 8MPX
-	private static final String DNIE1MENOS45 = "img/IMG_20160416_140524689.jpg";
-	private static final String DNIE1NORMAL2 = "img/IMG_20160416_143152822.jpg";
-	private static final String DNIE1ABRASADO = "img/IMG_20160416_143142945.jpg";
-	private static final String DNIE1DETRASMAS5 = "img/porDetrasP5.jpg";
-
-	// CAMARA LAURA
-	private static final String DNIE1LAU = "img/IMG_20160417_133817.jpg";
-	private static final String DNIE1LAUDETRAS = "img/IMG_20160417_133839.jpg";
-
-	//CAMARA HUAWEI Y300
-	private static final String DNIE1MUYCERCA = "img/IMG_20160418_185527.jpg";
-	private static final String DNIE1DETRASMUYLEJOS = "img/IMG_20160418_185543.jpg";
-	private static final String DNIE1PABLO = "img/IMG_20160422_125725.jpg";
-	private static final String DNIE1PABLODETRAS = "img/IMG_20160422_125734.jpg";
-	
-	// CAMARA 13MPX
-	private static final String DNIE2NORMAL = "img/IMG_20160412_144912773.jpg";
-	private static final String DNIE2MENOS90 = "img/IMG_20160412_144923366.jpg";
-	private static final String DNIE2DETRASMALO = "img/IMG_20160422_154835289.jpg";
-	private static final String DNIE2DETRASMALO2 = "img/IMG_20160423_145445125.jpg";
-	private static final String DNIE2DETRASMALO3 = "img/DNIE2DETRAS3.jpg";
-	
-	public static final double CANNY_LOW_THRESHOLD = 100;
-	public static final double CANNY_RATIO = 3.0;
-	public static final int CANNY_KERNEL_SIZE = 3;
-
+	/** 
+	 * Constante THRESHOLD_OCR que marca el valor inicial de threshold para
+	 * {@link ImageProcessing#imageProcessingPreOCR(Mat, double)}. 
+	 */
 	public static final int THRESHOLD_OCR = 90;
-	/**
-	 * MOST IMPORTANT PARAMETER
-	 * 
-	 * if too high this detect the background as part of the ID if too low only
-	 * detect a part of the ID
+	
+	/** 
+	 * Constante THRESHOLD_THRESH que marca el valor inicial de threshold para
+	 * {@link ImageProcessing#detectaDni(Mat, Size, double)}. 
 	 */
 	public static final int THRESHOLD_THRESH = 142;
 	
 
+	/** {@link RotatedRect} que representa el area detectad como DNI. */
 	private RotatedRect rectangulo;
+	
+	/** 
+	 * Ángulo de {@link ImageProcessing#rectangulo} sobre el que se aplica
+	 * la corrección y se emplea para girar la imagen del DNI. 
+	 */
 	private double correctedAngle;
+	
+	/** La campaña a la que está asociado este DNI. */
 	private Campaign campaign;
+	
+	/** Número de la hoja de firmas que tiene este DNI. */
 	private long numSignPaper;
 	
-	
+	/**
+	 * Bloque estatico (que se ejecuta una única vez independientemente del 
+	 * número de instancias) empleado para cargar la libería nativa 
+	 * de OpenCV: libopencv_java310.so, una vez cargada se pueden usar todas sus
+	 * funcionalidades.
+	 */
 	static{
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
 	
+	/**
+	 * Crea una nueva instancia de {@link ImageProcessing}.
+	 *
+	 * @param c la cammpaña de los DNI que se pretende detectar
+	 * @param numSignPaper el numero de la hoja de firmas de dichos DNI
+	 */
 	public ImageProcessing (Campaign c, long numSignPaper)
 	{
 		this.campaign = c;
@@ -131,21 +196,43 @@ public class ImageProcessing {
 		
 		
 	}
+	
 	/**
-	 * Poner las referencias al finding contours
+	 * Método principal de la clase, recibe dos {@link File} que representan 
+	 * las dos fotografías (ambas caras del DNI) sobre las que se trabajara.
+	 * <p>
+	 * Se encarga de crear los {@link ImageProcessingThread} para detectar cara, 
+	 * recoger sus resultados, crear una instancia de {@link Firma} con ellos, 
+	 * guardar en la base de datos de la campaña dicha firma así como las 
+	 * imagenes de los DNI cortados.
+	 *
+	 * @param dniFrontal
+	 *            the dni frontal
+	 * @param dniPosterior
+	 *            the dni posterior
+	 *            
+	 * @return {@link ImageProcessing#CORRECTO}, 
+	 * {@link ImageProcessing#ERROR_INTERNO}, 
+	 * {@link ImageProcessing#ERROR_AMBOS},  
+	 * {@link ImageProcessing#ERROR_FRONTAL}, 
+	 * {@link ImageProcessing#ERROR_POSTERIOR} o
+	 * {@link ImageProcessing#ERROR_TIMEOUT}  
 	 * 
-	 * @References -Finding contours:
-	 *             http://opencvexamples.blogspot.com/2013/09/find-contour.html
-	 *             -Bounding RotatedRect:
-	 *             http://docs.opencv.org/2.4/doc/tutorials/imgproc/
-	 *             shapedescriptors/bounding_rotated_ellipses/
-	 *             bounding_rotated_ellipses.html
+	 * @see <a href=
+	 *      "http://opencvexamples.blogspot.com/2013/09/find-contour.html">
+	 *      Finding contours</a>
+	 * @see <a href=
+	 *      "http://docs.opencv.org/2.4/doc/tutorials/imgproc/shapedescriptors/bounding_rotated_ellipses/bounding_rotated_ellipses.html">
+	 *      Bounding RotatedRect</a>
 	 * 
-	 *             -Detect Skew angle and correct it:
-	 *             http://felix.abecassis.me/2011/10/opencv-bounding-box-skew-
-	 *             angle/
-	 *             http://felix.abecassis.me/2011/09/opencv-detect-skew-angle/
-	 *             http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/
+	 * @see <a href=
+	 *      "http://felix.abecassis.me/2011/10/opencv-bounding-box-skew-angle/">
+	 *      Detect Skew angle</a>
+	 * 
+	 * @see <a href=
+	 *      "http://felix.abecassis.me/2011/10/opencv-rotation-deskewing/">
+	 *      Correct Skew Angle</a>
+	 * 
 	 */
 	
 	
@@ -155,12 +242,13 @@ public class ImageProcessing {
 	
 		Mat  dniCortadoFrontal = new Mat(), dniCortadoPosterior = new Mat();
 
+		System.out.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Iniciado");
 		
 		// Loading the Image
 		Mat dni = Imgcodecs.imread(dniFrontal.getAbsolutePath(), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
 		Mat dniDetras = Imgcodecs.imread(dniPosterior.getAbsolutePath(), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
 		if (dni.empty() == true || dniDetras.empty() == true) {
-			System.err.println("Error abriendo la imagen\n");
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Error abriendo las imagenes");
 			return ERROR_INTERNO;
 		}
 		
@@ -172,12 +260,13 @@ public class ImageProcessing {
 		
 		try {
 			if (ImageProcessingThread.getSemaforo().tryAcquire(2, DETECTION_TIMEOUT, TimeUnit.SECONDS)==false) {
-				System.err.println("Alguno de los hilos ha fallado en su tarea");
+				System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Ha pasado el timeout de "+DETECTION_TIMEOUT+
+						" segundos");
 				
 				return ERROR_TIMEOUT;
 			}
 		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Error esperando el procesamiento");
 			e1.printStackTrace();
 			
 			return ERROR_INTERNO;
@@ -185,9 +274,9 @@ public class ImageProcessing {
 		if (!hFrontal.isExito() || !hPosterior.isExito()) {
 			//Alguno de los hilos no ha logrado detectar texto
 			
-			System.err.println("Alguno de los hilos ha fallado en su tarea");
-			System.err.println("Exito hilo frontal: "+hFrontal.isExito());
-			System.err.println("Exito hilo posterior: "+hPosterior.isExito());
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Alguno de los hilos ha fallado en su tarea");
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Exito hilo frontal: "+hFrontal.isExito());
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Exito hilo posterior: "+hPosterior.isExito());
 			
 			if (!hFrontal.isExito() && !hPosterior.isExito())
 			{
@@ -209,10 +298,8 @@ public class ImageProcessing {
 		dniCortadoPosterior = hPosterior.getDniCortado();
 		
 		
-		
-		//File dniFrontalRecordado = new File(dniFrontal.getAbsolutePath());
-		//File dniPosteriorRecordado = new File(dniPosterior.getAbsolutePath());
-		
+		System.out.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Detección y OCR correctos, "
+				+ "falta escribir los resultados en disco");
 		long tIni =0, tfin=0;
 		tIni = System.currentTimeMillis();
 		SaveEncryptedImage sFrontal = new SaveEncryptedImage(dniCortadoFrontal, dniFrontal, campaign), 
@@ -225,16 +312,20 @@ public class ImageProcessing {
 			tF.join(0);
 			tP.join(0);
 		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": Error guardando las imagenes encriptadas");
+			
 			e1.printStackTrace();
 		}
 		
 		if (!sFrontal.isExito() || !sPosterior.isExito()) {
 			//Alguno de los hilos no ha logrado detectar texto
 			
-			System.err.println("Alguno de los hilos que guardan las imagenes ha fallado en su tarea");
-			System.err.println("Exito hilo frontal: "+sFrontal.isExito());
-			System.err.println("Exito hilo posterior: "+sPosterior.isExito());
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": "
+					+ "Alguno de los hilos que guardan las imagenes ha fallado en su tarea");
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": "
+					+ "Exito hilo frontal: "+sFrontal.isExito());
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": "
+					+ "Exito hilo posterior: "+sPosterior.isExito());
 			
 			if (!sFrontal.isExito() && !sPosterior.isExito())
 			{
@@ -248,7 +339,8 @@ public class ImageProcessing {
 			}
 		}
 		tfin = System.currentTimeMillis();
-		System.out.println("Tiempo total guardando encriptado: " + ((double)(tfin-tIni) / 1000)+ " segundos");
+		System.out.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": "
+				+ "Tiempo total guardando encriptado: " + ((double)(tfin-tIni) / 1000)+ " segundos");
 		
 		long numFirmas;
 		synchronized (campaign) {
@@ -263,14 +355,12 @@ public class ImageProcessing {
 		if (numFirmas % PDFThread.NUMERO_DNI_X_HOJA > 0) {
 			numHojaDNI++;
 		}
-		//TODO cambiar numero hoja de firma
+		
 		Firma firma = new Firma(dniFrontal.getAbsoluteFile(), dniPosterior.getAbsoluteFile(), nombre, apellidos, numDni,
 				numSignPaper, numHojaDNI);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		String json = gson.toJson(firma);
-		System.out.println("\n"+json);
-		
+	
 		
 		File signaturesDB = campaign.getDataBase();
 		BufferedWriter wr=null;
@@ -292,7 +382,8 @@ public class ImageProcessing {
 				| NoSuchAlgorithmException | CertificateException | UnrecoverableEntryException
 				| InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException
 				| BadPaddingException e) {
-			// TODO Auto-generated catch block
+			System.err.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": "
+					+ "Error escribiendo la firma en la base de datos de la campaña");
 			e.printStackTrace();
 			return ERROR_INTERNO;
 		}
@@ -305,35 +396,45 @@ public class ImageProcessing {
 				}
 			} catch (IOException e) {}
 		}
+		
+		System.out.println("["+new Date().toString()+"] imageProcessingAndOCR "+campaign.getCampaignName()+": "
+				+ "Exito escribiendo los resultados en disco");
 		return CORRECTO;
 		
 	}
 
 	
+	/**
+	 * Intenta detectar el DNI usando el parametro thresh para 
+	 * {@link Imgproc#threshold(Mat, Mat, double, double, int)}.
+	 *
+	 * @param dni El dni sobre el que trabajar
+	 * @param s el tamaño usado para la debugeación solo
+	 * @param thresh el valor thresh
+	 * @return la relacion de aspecto del objeto encontrado o -1 si no se ha 
+	 * encontrado nada 
+	 */
 	double detectaDni(Mat dni, Size s, double thresh) {
 		Mat dniGauss = new Mat(), dniThresh = new Mat(), dniResize = new Mat(), 
 				dniGray = new Mat(), dniContours = new Mat();
 		double largestArea = 0;
 		int largestAreaIndex = -1;
-		// RotatedRect rectangulo;
+		
 
-		// Convert to gray and gaussianblur it
+		// Convert to gray scale image
 		Imgproc.cvtColor(dni, dniGray, Imgproc.COLOR_BGR2GRAY);
 
-		// try normal blur filter if this doesn't works
+		// filter the image to eliminate noise
 		Imgproc.GaussianBlur(dniGray, dniGauss, new Size(3, 3), 0.5, 1.5);
-		// Imgproc.blur(dniGray, dniGauss, new Size(3, 3));
-
+		
 		Imgproc.threshold(dniGauss, dniThresh, thresh, 255, Imgproc.THRESH_BINARY_INV);
 
-		if (TOTAL_DEBUG) {
+		if (DEBUG) {
 			Imgproc.resize(dniThresh, dniResize, s);
 			displayImage(Mat2BufferedImage(dniResize), "Imagen threshold y filtrada");
 		}
 
-		// Imgproc.Canny(dniThresh, dniCanny, CANNY_LOW_THRESHOLD,
-		// CANNY_LOW_THRESHOLD * 2, CANNY_KERNEL_SIZE, false);
-
+		
 		// Find contours
 		// http://opencvexamples.blogspot.com/2013/09/find-contour.html
 		List<MatOfPoint> contours = new ArrayList<>();
@@ -366,16 +467,6 @@ public class ImageProcessing {
 
 		rectangulo = Imgproc.minAreaRect(correctArea);
 
-		Point[] rectPoints = new Point[4];
-		rectangulo.points(rectPoints);
-
-		// Draw the bounding box in green
-		if (rectPoints != null) {
-			for (int i = 0; i < rectPoints.length; i++) {
-				Imgproc.line(dniContours, rectPoints[i], rectPoints[(i + 1) % rectPoints.length], new Scalar(0, 255, 0),
-						3);
-			}
-		}
 
 		// Angle correction in case than the angle was calculated using a
 		// "vertical" rectangle
@@ -394,7 +485,7 @@ public class ImageProcessing {
 		// The DNI is rotated 90º
 		if (rectangulo.size.width < rectangulo.size.height) {
 
-			// I don't know if is rotated +90 or -90
+			//Don't know if is rotated +90 or -90 so turn to the left 90º
 			correctedAngle += 90;
 
 			// Swap width and height
@@ -405,22 +496,22 @@ public class ImageProcessing {
 		
 		double aspectRatio = rectangulo.size.width / rectangulo.size.height;
 		
-		if (TOTAL_DEBUG) {
+		if (DEBUG) {
 			System.out.println("\n\nAngulo: " + correctedAngle + "\tAngulo sin corregir: " + rectangulo.angle);
 			System.out.println("Ancho: " + rectangulo.size.width + "\tAlto: " + rectangulo.size.height);
 			System.out.println("Relacion de aspecto: " + aspectRatio);
 		}
-		// Drawit the contour in blue
-		Imgproc.drawContours(dniContours, contours, largestAreaIndex, new Scalar(255, 0, 0), 3);
-
-		if (DEBUG) {
-			Imgproc.resize(dniContours, dniResize, s);
-			displayImage(Mat2BufferedImage(dniResize), "Contours");
-
-		}
+		
+		
 		return aspectRatio;
 	}
 
+	/**
+	 * Corrige el ángulo del DNI y lo recorta de la imagen
+	 *
+	 * @param dni el DNI
+	 * @return el Dni recortado y girado
+	 */
 	Mat rotateAndCropDni (Mat dni)
 	{
 		Mat dniResize = new Mat(), rotationMat = new Mat(), dniRotated = new Mat(), dniCortado = new Mat();
@@ -433,7 +524,7 @@ public class ImageProcessing {
 		
 		Core.copyMakeBorder(dni, temp, dni.rows()/2, dni.rows()/2, dni.cols()/2, dni.cols()/2, Core.BORDER_CONSTANT, new Scalar(0, 0, 0));
 		
-		if (TOTAL_DEBUG) {
+		if (DEBUG) {
 			Imgproc.resize(temp, dniResize, new Size(rotatedSize.width / 8 , rotatedSize.height / 8));
 			displayImage(Mat2BufferedImage(dniResize), "pre-girado");
 		}
@@ -446,7 +537,7 @@ public class ImageProcessing {
 		// Rotate the image
 		Imgproc.warpAffine(temp, dniRotated, rotationMat, rotatedSize, Imgproc.INTER_CUBIC);
 
-		if (TOTAL_DEBUG) {
+		if (DEBUG) {
 			Imgproc.resize(dniRotated, dniResize, new Size(dniRotated.size().width / 8 , dniRotated.size().height / 8));
 			displayImage(Mat2BufferedImage(dniResize), "Girado");
 		}
@@ -468,6 +559,12 @@ public class ImageProcessing {
 		return dniCortado;
 	}
 	
+	/**
+	 * Corta la parte necesaria para realizar el OCR en la cara frontal del DNI
+	 *
+	 * @param dni el dni frontal
+	 * @return la parte que contiene el número
+	 */
 	Mat cropPreOCRFront(Mat dni)
 	{
 		Mat dniCortado = new Mat(), dniResize = new Mat();
@@ -483,6 +580,12 @@ public class ImageProcessing {
 		return dniCortado;
 	}
 	
+	/**
+	 * Corta la parte necesaria para realizar el OCR en la cara posterior del DNI
+	 *
+	 * @param dni el dni posterior
+	 * @return la parte que contiene el nombre y apellidos
+	 */
 	Mat cropPreOCRBack(Mat dni)
 	{
 		Mat dniCortado = new Mat(), dniResize = new Mat();
@@ -498,14 +601,23 @@ public class ImageProcessing {
 		return dniCortado;
 	}
 	
+	/**
+	 * Procesado de imagen Pre OCR con el objetivo de producir una imagen 
+	 * binaria (en blanco y negro) para favorecer el proceso OCR posterior
+	 *
+	 * @param dniCortado el dni cortado
+	 * @param valorThresh valor del thresh de 
+	 * {@link Imgproc#threshold(Mat, Mat, double, double, int)}
+	 * @return la imagen binarizada
+	 */
 	Mat imageProcessingPreOCR (Mat dniCortado, double valorThresh)
 	{
 		
 		Mat dniGray = new Mat(), dniGauss= new Mat(), dniThresh = new Mat(), dniResize = new Mat();
-		// Convert to gray and gaussianblur it
+		// Convert to grayscale image
 		Imgproc.cvtColor(dniCortado, dniGray, Imgproc.COLOR_BGR2GRAY);
 
-		// try normal blur filter if this doesn't works
+		// Filter to eliminate noise
 		Imgproc.GaussianBlur(dniGray, dniGauss, new Size(3, 3), 0.5, 1.5);
 
 		Imgproc.threshold(dniGauss, dniThresh, valorThresh, 255, Imgproc.THRESH_BINARY);
@@ -517,13 +629,19 @@ public class ImageProcessing {
 		return dniThresh;
 	}
 	
+	/**
+	 * Realiza el OCR de la imagen m con la configuración config llamando para 
+	 * ello a {@link ITesseract#doOCR(BufferedImage)}
+	 *
+	 * @param m la imagen
+	 * @param config la configuracion
+	 * @return el Array de {@link String} detectados en la imagen donde cada 
+	 * elemento es una linea diferente
+	 */
 	String[] OCRMat (Mat m, List<String> config)
 	{
 		
 		ITesseract instance = new Tesseract(); // JNA Interface Mapping
-		// ITesseract instance = new Tesseract1(); // JNA Direct Mapping
-		// File tessDataFolder = LoadLibs.extractTessResources("tessdata"); //
-		// Maven build bundles English data
 		instance.setDatapath(CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE);
 
 		if (config != null) {
@@ -536,11 +654,20 @@ public class ImageProcessing {
 			String[] resultados = result.split("\n");
 			return resultados;
 		} catch (TesseractException e) {
-			System.err.println(e.getMessage());
+			System.err.println("["+new Date().toString()+"] OCRMat "+campaign.getCampaignName()+": "
+					+ "Error en el proceso OCR");
+			e.printStackTrace();
 			return null;
 		}
 	}
  	
+	/**
+	 * Método auxiliar para convertir un objeto {@link Mat} a 
+	 * {@link BufferedImage}
+	 *
+	 * @param m el objeto {@link Mat} 
+	 * @return la conversión a {@link BufferedImage}
+	 */
 	public static BufferedImage Mat2BufferedImage(Mat m) {
 		// source:
 		// http://answers.opencv.org/question/10344/opencv-java-load-image-to-gui/
@@ -561,6 +688,13 @@ public class ImageProcessing {
 
 	}
 
+	/**
+	 * Método auxiliar usado para mostrar una imagen por pantalla en el modo 
+	 * DEBUG.
+	 *
+	 * @param img2 la imagen
+	 * @param title el título de la ventana
+	 */
 	public static void displayImage(Image img2, String title) {
 
 		ImageIcon icon = new ImageIcon(img2);

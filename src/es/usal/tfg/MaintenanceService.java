@@ -1,3 +1,12 @@
+/*
+ * Archivo: MaintenanceService.java 
+ * Proyecto: Demos_Rest
+ * 
+ * Autor: Aythami Estévez Olivas
+ * Email: aythae@gmail.com
+ * Fecha: 04-jul-2016
+ * Repositorio GitHub: https://github.com/AythaE/Demos_Rest
+ */
 package es.usal.tfg;
 
 import java.io.File;
@@ -19,7 +28,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
@@ -38,40 +46,55 @@ import com.google.gson.stream.JsonToken;
 
 import es.usal.tfg.security.SymmetricEncryption;
 
+/**
+ * The Class MaintenanceService que implementa las tareas de mantimiento, es
+ * invocada por la clase {@link MyTaskExecutor} diariamente.
+ * <p>
+ * Se encarga de borrar los tokens activos, los de descarga, los PDFs generados
+ * y recorrer la base de datos de campañas comprobando sus fechas de borrado y 
+ * en caso de estar en dicha fecha borra el directorio de campaña, la campaña
+ * de la base de datos y de la estructura de campañas. Para esta comprobación 
+ * va leyendo la base de datos de campañas y copiando las campañas correctas a 
+ * una base de datos de campañas temporal (todo esto encriptado), al finalizar
+ * sustituye la base de datos temporal por la original.
+ */
 public class MaintenanceService implements Runnable {
 
 	
 
+	/* (non-Javadoc)
+	 * @see java.lang.Runnable#run()
+	 */
 	@Override
 	public void run() {
 		
 		
-		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: iniciando");
+		System.out.println("["+new Date().toString()+"] Mantenimiento: iniciando");
 		
 		
 		//Borrado de la estructura de datos activeTokens
 		CampaignManagement.clearActiveToken();
 		
-		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: tokens activos borrados");
+		System.out.println("["+new Date().toString()+"] Mantenimiento: tokens activos borrados");
 				
 		//Se obtienen todos los FutureTask encargados de generar PDFs que haya actualmente para ir
 		//cancelandoloos si no han acabado y posteriormente borrar todos los pdfs así como la 
 		//estructura de datos downloadTokens
 		Collection<FutureTask<File>> pdfs = CampaignManagement.getAllPDFFuture();
 		
-		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: futuretask recuperadas");
+		System.out.println("["+new Date().toString()+"] Mantenimiento: futuretask recuperadas");
 		for (FutureTask<File> pdf : pdfs) {
 			System.out.println(pdf.toString());
 			if (!pdf.isDone()) {
 				
 				if(pdf.cancel(true)){
 					
-					System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Tarea PDF parada");
+					System.out.println("["+new Date().toString()+"] Mantenimiento: Tarea PDF parada");
 					
 				}
 				else{
 					
-					System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error parando Tarea PDF");
+					System.err.println("["+new Date().toString()+"] Mantenimiento: Error parando Tarea PDF");
 					
 				}
 			}
@@ -79,7 +102,7 @@ public class MaintenanceService implements Runnable {
 		
 
 		
-		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Todas las tareas PDF paradas");
+		System.out.println("["+new Date().toString()+"] Mantenimiento: Todas las tareas PDF paradas");
 		
 		
 		File campaingsDirectory = new File(CampaignManagement.WEBSERVICE_ABSOLUTE_ROUTE+"/campanias");
@@ -88,18 +111,18 @@ public class MaintenanceService implements Runnable {
 			borrarPDFs(campaingsDirectory);
 		} catch (IOException e) {
 			
-			System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error borrando PDFs");
+			System.err.println("["+new Date().toString()+"] Mantenimiento: Error borrando PDFs");
 		
 			e.printStackTrace();
 			System.out.println(CampaignManagement.SEPARADOR);
 		}
 		
-		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Todos los PDF borrados");
+		System.out.println("["+new Date().toString()+"] Mantenimiento: Todos los PDF borrados");
 		
 		
 		CampaignManagement.clearDownloadToken();
 		
-		System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: tokens de descarga borrados");
+		System.out.println("["+new Date().toString()+"] Mantenimiento: tokens de descarga borrados");
 		
 
 		// A continuación se lee el la base de datos de campañas comprobando que
@@ -169,14 +192,14 @@ public class MaintenanceService implements Runnable {
 	
 							CampaignManagement.deleteCampaña(c.getCampaignName());
 							
-							System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: borrada campaña "+c.getCampaignName());
+							System.out.println("["+new Date().toString()+"] Mantenimiento: borrada campaña "+c.getCampaignName());
 	
 						
 						}
 						else {
 							gson.toJson(c, wr);
 	
-							System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: guardada campaña "+c.getCampaignName());
+							System.out.println("["+new Date().toString()+"] Mantenimiento: guardada campaña "+c.getCampaignName());
 	
 							
 						}
@@ -189,7 +212,7 @@ public class MaintenanceService implements Runnable {
 						| UnrecoverableEntryException | ParseException e) {
 					
 					
-					System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error comprobando fechas de campañas");
+					System.err.println("["+new Date().toString()+"] Mantenimiento: Error comprobando fechas de campañas");
 					e.printStackTrace();
 					System.out.println(CampaignManagement.SEPARADOR);
 				} finally {
@@ -220,28 +243,31 @@ public class MaintenanceService implements Runnable {
 					 */
 					Files.move(newCampaignsFile.toPath(), originalCampaignsFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				
-					System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Base de datos de campañas actualizada");
+					System.out.println("["+new Date().toString()+"] Mantenimiento: Base de datos de campañas actualizada");
 					
 				} catch (IOException e) {
 					
-					System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error sobreescribiendo base de datos de campañas");
+					System.out.println("["+new Date().toString()+"] Mantenimiento: Error sobreescribiendo base de datos de campañas");
 					e.printStackTrace();
 					System.out.println(CampaignManagement.SEPARADOR);
 					
 				}
 					
 			} else {
-				System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: no existe ninguna campaña");
+				System.out.println("["+new Date().toString()+"] Mantenimiento: no existe ninguna campaña");
 			}
 		}
 	}
 	
-
 	/**
-	 * 
-	 * @param c
+	 * Borrar PDFS de un directorio concreto, es invocado sobre el directorio
+	 * general de campañas por lo que borra todos los PDF existentes
+	 *
+	 * @param campaignsDirectory
+	 *            the campaigns directory
 	 * @throws IOException
-	 * @reference http://stackoverflow.com/a/8685959/6441806
+	 *             Signals that an I/O exception has occurred.
+	 * @see <a href="http://stackoverflow.com/a/8685959/6441806">Referencia</a>
 	 */
 	private static void borrarPDFs (File campaignsDirectory) throws IOException{
 		if (campaignsDirectory.isDirectory()) {
@@ -258,9 +284,9 @@ public class MaintenanceService implements Runnable {
 		        		
 		        		try {
 							Files.delete(file);
-							System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: borrado "+file.toAbsolutePath().toString());
+							System.out.println("["+new Date().toString()+"] Mantenimiento: borrado "+file.toAbsolutePath().toString());
 						} catch (Exception e) {
-							System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error borrando "+file.toAbsolutePath().toString());
+							System.err.println("["+new Date().toString()+"] Mantenimiento: Error borrando "+file.toAbsolutePath().toString());
 							e.printStackTrace();
 						}
 					}
@@ -279,9 +305,9 @@ public class MaintenanceService implements Runnable {
 		        	if (extension.equalsIgnoreCase("pdf")) {
 		        		try {
 							Files.delete(file);
-							System.out.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: borrado "+file.toAbsolutePath().toString());
+							System.out.println("["+new Date().toString()+"] Mantenimiento: borrado "+file.toAbsolutePath().toString());
 						} catch (Exception e) {
-							System.err.println("["+new Date().toString()+"] "+Thread.currentThread().getName()+" Mantenimiento: Error borrando "+file.toAbsolutePath().toString());
+							System.err.println("["+new Date().toString()+"] Mantenimiento: Error borrando "+file.toAbsolutePath().toString());
 							e.printStackTrace();
 						}
 					}

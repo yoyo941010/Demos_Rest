@@ -1,3 +1,12 @@
+/*
+ * Archivo: PasswordStorage.java 
+ * Proyecto: Demos_Rest
+ * 
+ * Autor: Aythami Estévez Olivas
+ * Email: aythae@gmail.com
+ * Fecha: 04-jul-2016
+ * Repositorio GitHub: https://github.com/AythaE/Demos_Rest
+ */
 package es.usal.tfg.security;
 
 
@@ -10,8 +19,12 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.xml.bind.DatatypeConverter;
 
 /**
- * @reference https://github.com/defuse/password-hashing
+ * Clase PasswordStorage encargada de crear hashes de las contraseñas de campaña
+ * para su almacenamiento en la base de datos de campañas y de comparar 
+ * contraseñas para determinar si son iguales a las almacenadas
+ *
  * @author defuse
+ * @see <a href="https://github.com/defuse/password-hashing">Reference</a>
  */
 public class PasswordStorage
 {
@@ -37,17 +50,20 @@ public class PasswordStorage
     }
 
     /**
-     * @Modification
-     * Cambio de Sha1 a sha256
+     * Campo que controla el algoritmmo de Hash concreto a utilizar.
+     * Modificación propia de cambiando de Sha1 a sha256
      */
     private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
 
+    /** The Constant SALT_BYTE_SIZE. */
     // These constants may be changed without breaking existing hashes.
     private static final int SALT_BYTE_SIZE = 24;
-    /**
-     * @Modification
-     * Cambio de 18 a 30 siguiendo los criterios de https://github.com/defuse/password-hashing#customization
-     */
+	/**
+	 * Campo que controla el tamaño del hash en bits. Modificación propia de
+	 * cambiando de 18 a 30 bits siguiendo los criterios de
+	 * <a href="https://github.com/defuse/password-hashing#customization">https:
+	 * //github.com/defuse/password-hashing#customization</a>
+	 */
     private static final int HASH_BYTE_SIZE = 30;
     private static final int PBKDF2_ITERATIONS = 64000;
 

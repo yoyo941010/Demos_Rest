@@ -1,3 +1,12 @@
+/*
+ * Archivo: SaveEncryptedImage.java 
+ * Proyecto: Demos_Rest
+ * 
+ * Autor: Aythami Estévez Olivas
+ * Email: aythae@gmail.com
+ * Fecha: 04-jul-2016
+ * Repositorio GitHub: https://github.com/AythaE/Demos_Rest
+ */
 package es.usal.tfg.imageProcessing;
 
 import java.awt.image.BufferedImage;
@@ -19,18 +28,44 @@ import org.opencv.core.Mat;
 import es.usal.tfg.Campaign;
 import es.usal.tfg.security.SymmetricEncryption;
 
+
+/**
+ * Clase SaveEncryptedImage usada para poder guardar en paralelo las imagenes 
+ * de los DNI recortados encriptados.
+ * <p>
+ * Simplemente abre el fichero de destino para desencripcion y escribe en él
+ * la imagen.
+ */
 public class SaveEncryptedImage implements Runnable {
 
+	/** La imagen del DNI a guardad. */
 	private Mat image;
+	
+	/** El destino donde se debe guardar. */
 	private File destination;
+	
+	/** La campaña a la que pertenece esa foto. */
 	private Campaign campaign;
+	
+	/** Flag para controlar si ha tenido exito la subida. */
 	private boolean exito = false;
 	
+	/**
+	 * Instantiates a new save encrypted image.
+	 *
+	 * @param image the image
+	 * @param destination the destination
+	 * @param campaign the campaign
+	 */
 	public SaveEncryptedImage(Mat image, File destination, Campaign campaign){
 		this.image = image;
 		this.destination = destination;
 		this.campaign = campaign;
 	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Runnable#run()
+	 */
 	@Override
 	public void run() {
 		
@@ -67,6 +102,11 @@ public class SaveEncryptedImage implements Runnable {
 		return;
 	}
 	
+	/**
+	 * Checks if is exito.
+	 *
+	 * @return true, if is exito
+	 */
 	public boolean isExito() {
 		return exito;
 	}
