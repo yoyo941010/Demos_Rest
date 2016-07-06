@@ -84,7 +84,6 @@ public class MaintenanceService implements Runnable {
 		
 		System.out.println("["+new Date().toString()+"] Mantenimiento: futuretask recuperadas");
 		for (FutureTask<File> pdf : pdfs) {
-			System.out.println(pdf.toString());
 			if (!pdf.isDone()) {
 				
 				if(pdf.cancel(true)){
