@@ -51,11 +51,11 @@ import es.usal.tfg.security.SymmetricEncryption;
  * invocada por la clase {@link MyTaskExecutor} diariamente.
  * <p>
  * Se encarga de borrar los tokens activos, los de descarga, los PDFs generados
- * y recorrer la base de datos de campañas comprobando sus fechas de borrado y 
- * en caso de estar en dicha fecha borra el directorio de campaña, la campaña
- * de la base de datos y de la estructura de campañas. Para esta comprobación 
- * va leyendo la base de datos de campañas y copiando las campañas correctas a 
- * una base de datos de campañas temporal (todo esto encriptado), al finalizar
+ * y recorrer la base de datos de campa�as comprobando sus fechas de borrado y 
+ * en caso de estar en dicha fecha borra el directorio de campa�a, la campa�a
+ * de la base de datos y de la estructura de campa�as. Para esta comprobación 
+ * va leyendo la base de datos de campa�as y copiando las campa�as correctas a 
+ * una base de datos de campa�as temporal (todo esto encriptado), al finalizar
  * sustituye la base de datos temporal por la original.
  */
 public class MaintenanceService implements Runnable {
@@ -124,12 +124,12 @@ public class MaintenanceService implements Runnable {
 		System.out.println("["+new Date().toString()+"] Mantenimiento: tokens de descarga borrados");
 		
 
-		// A continuación se lee el la base de datos de campañas comprobando que
-		// no haya pasado su fecha de borrado de ser así se borra esa campaña de
+		// A continuación se lee el la base de datos de campa�as comprobando que
+		// no haya pasado su fecha de borrado de ser así se borra esa campa�a de
 		// la base de datos y su contenido, para ello se crea un fichero 
-		// temporal en el que se van escribiendo las campañas validas 
+		// temporal en el que se van escribiendo las campa�as validas 
 		// encriptadas y se omiten las que hayan pasado de su fecha. Al finalizar
-		// se copia el fichero temporal sobre el de campañas original
+		// se copia el fichero temporal sobre el de campa�as original
 		
 		Set<PosixFilePermission> permsRW = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
 		File originalCampaignsFile = CampaignManagement.getCampaignsFile();
@@ -144,7 +144,7 @@ public class MaintenanceService implements Runnable {
 		synchronized (CampaignManagement.lockCampaignsFile) {
 			
 			
-			if (!CampaignManagement.campañasIsEmpty()) {
+			if (!CampaignManagement.campa�asIsEmpty()) {
 				
 				try {
 					Files.createFile(newCampaignsFile.toPath(), PosixFilePermissions.asFileAttribute(permsRW));
@@ -183,22 +183,22 @@ public class MaintenanceService implements Runnable {
 						Date fechaActual = new Date();
 						
 						// Si la fecha de borrado no es posterior a la actual
-						// entonces se borra la campaña, en caso contrario se 
+						// entonces se borra la campa�a, en caso contrario se 
 						// escribe al fichero temporal
 						
 						if (!deleteDate.after(fechaActual)) {
-							CampaignManagement.borrarArchivosCampaña(CampaignManagement.getCampaña(c.getCampaignName()));
+							CampaignManagement.borrarArchivosCampa�a(CampaignManagement.getCampa�a(c.getCampaignName()));
 	
-							CampaignManagement.deleteCampaña(c.getCampaignName());
+							CampaignManagement.deleteCampa�a(c.getCampaignName());
 							
-							System.out.println("["+new Date().toString()+"] Mantenimiento: borrada campaña "+c.getCampaignName());
+							System.out.println("["+new Date().toString()+"] Mantenimiento: borrada campa�a "+c.getCampaignName());
 	
 						
 						}
 						else {
 							gson.toJson(c, wr);
 	
-							System.out.println("["+new Date().toString()+"] Mantenimiento: guardada campaña "+c.getCampaignName());
+							System.out.println("["+new Date().toString()+"] Mantenimiento: guardada campa�a "+c.getCampaignName());
 	
 							
 						}
@@ -211,7 +211,7 @@ public class MaintenanceService implements Runnable {
 						| UnrecoverableEntryException | ParseException e) {
 					
 					
-					System.err.println("["+new Date().toString()+"] Mantenimiento: Error comprobando fechas de campañas");
+					System.err.println("["+new Date().toString()+"] Mantenimiento: Error comprobando fechas de campa�as");
 					e.printStackTrace();
 					System.out.println(CampaignManagement.SEPARADOR);
 				} finally {
@@ -242,25 +242,25 @@ public class MaintenanceService implements Runnable {
 					 */
 					Files.move(newCampaignsFile.toPath(), originalCampaignsFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				
-					System.out.println("["+new Date().toString()+"] Mantenimiento: Base de datos de campañas actualizada");
+					System.out.println("["+new Date().toString()+"] Mantenimiento: Base de datos de campa�as actualizada");
 					
 				} catch (IOException e) {
 					
-					System.out.println("["+new Date().toString()+"] Mantenimiento: Error sobreescribiendo base de datos de campañas");
+					System.out.println("["+new Date().toString()+"] Mantenimiento: Error sobreescribiendo base de datos de campa�as");
 					e.printStackTrace();
 					System.out.println(CampaignManagement.SEPARADOR);
 					
 				}
 					
 			} else {
-				System.out.println("["+new Date().toString()+"] Mantenimiento: no existe ninguna campaña");
+				System.out.println("["+new Date().toString()+"] Mantenimiento: no existe ninguna campa�a");
 			}
 		}
 	}
 	
 	/**
 	 * Borrar PDFS de un directorio concreto, es invocado sobre el directorio
-	 * general de campañas por lo que borra todos los PDF existentes
+	 * general de campa�as por lo que borra todos los PDF existentes
 	 *
 	 * @param campaignsDirectory
 	 *            the campaigns directory

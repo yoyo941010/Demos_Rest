@@ -69,7 +69,7 @@ import es.usal.tfg.security.PasswordStorage.InvalidHashException;
 import es.usal.tfg.security.SymmetricEncryption;
 
 /**
- * Clase principal del proyecto, encargada de gestionar las campañas, además 
+ * Clase principal del proyecto, encargada de gestionar las campa�as, además 
  * se encarga de instanciar y lanzar la tarea de {@link es.usal.tfg.MaintenanceService mantenimiento} mediante
  * la clase encargada de ejecutarla, {@link es.usal.tfg.MyTaskExecutor MyTaskExecutor} 
  * 
@@ -93,7 +93,7 @@ public class CampaignManagement implements ServletContextListener {
 	
 	/** 
 	 * The Constant masterKeyAlias que representa el alias de la clave 
-	 * de cifrado de la base de datos de campañas, campaigns.json
+	 * de cifrado de la base de datos de campa�as, campaigns.json
 	 */
 	static final String masterKeyAlias = "master_key";
 
@@ -110,10 +110,10 @@ public class CampaignManagement implements ServletContextListener {
 	public static final int LOGIN_ERROR_INTERNO = 1;
 
 	/**
-	 * The Constant LOGIN_NO_EXISTE_CAMPAÑA para indicar que no existe campaña
+	 * The Constant LOGIN_NO_EXISTE_CAMPA�A para indicar que no existe campa�a
 	 * en {@link CampaignManagement#loginInterno(String, String) loginInterno}
 	 */
-	public static final int LOGIN_NO_EXISTE_CAMPAÑA = 2;
+	public static final int LOGIN_NO_EXISTE_CAMPA�A = 2;
 
 	/**
 	 * The Constant LOGIN_INCORRECTO para indicar login incorrecto en
@@ -127,13 +127,13 @@ public class CampaignManagement implements ServletContextListener {
 	/** 
 	 * Estructura de datos utilizada para asociar instancias de {@link Campaign} 
 	 * con su nombre. Se utiliza desde otras clases para poder buscar y acceder
-	 * a los campos de una campaña conociendo solo su nombre
+	 * a los campos de una campa�a conociendo solo su nombre
 	 * 
 	 */
-	private static HashMap<String ,Campaign> campañas = new HashMap<>();
+	private static HashMap<String ,Campaign> campa�as = new HashMap<>();
 	
 	/** 
-	 * Estructura de datos utilizada almacenar los tokens de sesion de campaña
+	 * Estructura de datos utilizada almacenar los tokens de sesion de campa�a
 	 * activos, un token está se introduce aqui al generarse en los metodos
 	 * {@link CampaignManagement#register(String, String, String) registro} o
 	 * {@link CampaignManagement#login(String, String) login} y también cuando
@@ -166,12 +166,12 @@ public class CampaignManagement implements ServletContextListener {
 	private static final Object lockDownload = new Object();
 	
 	/** 
-	 * The Constant lockCampañas que actua como lock para los bloques syncronized
+	 * The Constant lockCampa�as que actua como lock para los bloques syncronized
 	 * en las lecturas o modificaciones de la estructura de datos 
-	 * {@link CampaignManagement#campañas} de forma sincronizada en
+	 * {@link CampaignManagement#campa�as} de forma sincronizada en
 	 * los distintos hilos
 	 */
-	private static final Object lockCampañas = new Object();
+	private static final Object lockCampa�as = new Object();
 	
 	/** The Constant lockTokens que actua como lock para los bloques syncronized
 	 * en las lecturas o modificaciones de la estructura de datos 
@@ -180,7 +180,7 @@ public class CampaignManagement implements ServletContextListener {
 	 */
 	private static final Object lockTokens = new Object();
 	
-	/** Archivo que representa a la base de datos de las campañas. */
+	/** Archivo que representa a la base de datos de las campa�as. */
 	private static final File campaignsFile = new File(WEBSERVICE_ABSOLUTE_ROUTE + "/campaigns.json");
 	
 	/** The Constant lockCampaignsFile que actua como lock para los bloques 
@@ -213,44 +213,44 @@ public class CampaignManagement implements ServletContextListener {
 	}
 	
 	/**
-	 * Comprueba si la estructura {@link CampaignManagement#campañas} está vacía.
+	 * Comprueba si la estructura {@link CampaignManagement#campa�as} está vacía.
 	 *
 	 * @return true, si está vacía, false, en caso contrario
 	 */
-	static boolean campañasIsEmpty (){
-		synchronized (lockCampañas) {
-			return campañas.isEmpty();
+	static boolean campa�asIsEmpty (){
+		synchronized (lockCampa�as) {
+			return campa�as.isEmpty();
 		}
 	}
 	
 	/**
-	 * Obtiene la campaña asociada al parametro en la estructura 
-	 * {@link CampaignManagement#campañas}.
+	 * Obtiene la campa�a asociada al parametro en la estructura 
+	 * {@link CampaignManagement#campa�as}.
 	 *
-	 * @param campaignName nombre de la campaña que se desea recuperar
-	 * @return la campaña asociada o null en caso de no existir
+	 * @param campaignName nombre de la campa�a que se desea recuperar
+	 * @return la campa�a asociada o null en caso de no existir
 	 */
-	public static Campaign getCampaña(String campaignName) {
+	public static Campaign getCampa�a(String campaignName) {
 		
-		synchronized (lockCampañas) {
-			return campañas.get(campaignName);
+		synchronized (lockCampa�as) {
+			return campa�as.get(campaignName);
 		}	
 	}
 	
 
 	/**
-	 * Borra la campaña asociada al parametro en la estructura 
-	 * {@link CampaignManagement#campañas}.
+	 * Borra la campa�a asociada al parametro en la estructura 
+	 * {@link CampaignManagement#campa�as}.
 	 *
 	 *
-	 * @param campaignName nombre de la campaña que se desea borrar
+	 * @param campaignName nombre de la campa�a que se desea borrar
 	 * @return true, en caso de exito o false en el contrario
 	 */
-	static Campaign deleteCampaña(String campaignName) {
+	static Campaign deleteCampa�a(String campaignName) {
 		
 		
-		synchronized (lockCampañas) {
-			return campañas.remove(campaignName);
+		synchronized (lockCampa�as) {
+			return campa�as.remove(campaignName);
 		}	
 	}
 	
@@ -287,7 +287,7 @@ public class CampaignManagement implements ServletContextListener {
 	}
 	
 	/**
-	 * Añade una entrada download token, FutureTask a la estructura 
+	 * A�ade una entrada download token, FutureTask a la estructura 
 	 * {@link CampaignManagement#downloadTokens} con los parametros pasados
 	 * por parametro.
 	 *
@@ -333,8 +333,8 @@ public class CampaignManagement implements ServletContextListener {
 	
 	/**
 	 * Constructor que crea una instancia de esta clase, para ello lee las
-	 * campañas existentes en la base de datos, instancia las tareas de
-	 * mantenimiento y las programa para su ejecución a las 5 de la mañana
+	 * campa�as existentes en la base de datos, instancia las tareas de
+	 * mantenimiento y las programa para su ejecución a las 5 de la ma�ana
 	 * 
 	 * @see MaintenanceService
 	 * @see MyTaskExecutor
@@ -342,7 +342,7 @@ public class CampaignManagement implements ServletContextListener {
 	public CampaignManagement() {
 		
 		if (instance == null) {
-			inicializaCampañas();
+			inicializaCampa�as();
 			MaintenanceService maintenance = new MaintenanceService();
 			taskExecutor = new MyTaskExecutor(maintenance);
 			taskExecutor.startScheduleExecutionAt(5, 0, 0);
@@ -358,9 +358,9 @@ public class CampaignManagement implements ServletContextListener {
 	 * <p>
 	 * Todos sus parametros estan encodeados en Base64
 	 *
-	 * @param campaignName64 nombre de la campaña
-	 * @param password64 contraseña de la campaña
-	 * @param deleteDate64 fecha de borrado de la campaña
+	 * @param campaignName64 nombre de la campa�a
+	 * @param password64 contrase�a de la campa�a
+	 * @param deleteDate64 fecha de borrado de la campa�a
 	 * @return response con determinado codigo y mensaje en funcion del exito
 	 * o fracaso de la operación de registro
 	 */
@@ -380,13 +380,13 @@ public class CampaignManagement implements ServletContextListener {
 		String deleteDateStr = new String(Base64.getUrlDecoder().decode(deleteDate64));
 		
 	
-		System.out.println("["+new Date().toString()+"] Registro: camapaña "+campaignName+ " iniciado");
+		System.out.println("["+new Date().toString()+"] Registro: camapa�a "+campaignName+ " iniciado");
 		
 		Date deleteDate = null;
 		try {
 			deleteDate = dateFormat.parse(deleteDateStr);
 		} catch (ParseException e2) {
-			System.err.println("["+new Date().toString()+"] Registro: camapaña "+campaignName+ " Error parsando la fecha de borrado");
+			System.err.println("["+new Date().toString()+"] Registro: camapa�a "+campaignName+ " Error parsando la fecha de borrado");
 			e2.printStackTrace();
 			try {
 				return Response.status(500).entity(Base64.getUrlEncoder().encode("Error interno del servidor".getBytes("UTF-8"))).build();
@@ -395,12 +395,12 @@ public class CampaignManagement implements ServletContextListener {
 			}
 		}
 		
-		synchronized (lockCampañas) {
+		synchronized (lockCampa�as) {
 		
-			if (campañas.containsKey(campaignName)) {
+			if (campa�as.containsKey(campaignName)) {
 				try {
-					System.err.println("["+new Date().toString()+"] Registro: camapaña "+campaignName+ " Error ya existe una campaña con ese nombre");
-					return Response.status(400).entity(Base64.getUrlEncoder().encode("Error, ya existe una campaña con ese nombre".getBytes("UTF-8"))).build();
+					System.err.println("["+new Date().toString()+"] Registro: camapa�a "+campaignName+ " Error ya existe una campa�a con ese nombre");
+					return Response.status(400).entity(Base64.getUrlEncoder().encode("Error, ya existe una campa�a con ese nombre".getBytes("UTF-8"))).build();
 				} catch (UnsupportedEncodingException e) {
 					
 				}
@@ -412,7 +412,7 @@ public class CampaignManagement implements ServletContextListener {
 		Date fechaActual = new Date();
 		if (!deleteDate.after(fechaActual)) {
 			try {
-				System.err.println("["+new Date().toString()+"] Registro: camapaña "+campaignName+ " Error la fecha de borrado no es posterior a la actual");
+				System.err.println("["+new Date().toString()+"] Registro: camapa�a "+campaignName+ " Error la fecha de borrado no es posterior a la actual");
 				return Response.status(400)
 						.entity(Base64.getUrlEncoder().encode(new String("Error, la fecha ha de ser superior a la actual ("
 								+ dateFormat.format(fechaActual) + ")").getBytes("UTF-8")))
@@ -423,11 +423,11 @@ public class CampaignManagement implements ServletContextListener {
 		}
 		
 		String hashPass=null;
-		//Creamos el hash de la contraseña de la campaña
+		//Creamos el hash de la contrase�a de la campa�a
 		try {
 			hashPass = PasswordStorage.createHash(password);
 		} catch (CannotPerformOperationException e) {
-			System.err.println("["+new Date().toString()+"] Registro: camapaña "+campaignName+ " Error creando hash de la contraseña");
+			System.err.println("["+new Date().toString()+"] Registro: camapa�a "+campaignName+ " Error creando hash de la contrase�a");
 			e.printStackTrace();
 			try {
 				
@@ -447,7 +447,7 @@ public class CampaignManagement implements ServletContextListener {
 		
 		Set<PosixFilePermission> permsRW = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
 		
-		//Si no existe la base de datos campañas es que es la primera en ser registrada asi que
+		//Si no existe la base de datos campa�as es que es la primera en ser registrada asi que
 		//configuramos el keystore
 		
 		if (!campaignsFile.exists()) {
@@ -461,7 +461,7 @@ public class CampaignManagement implements ServletContextListener {
 				SymmetricEncryption.configureKeyStore();
 				
 			} catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException e) {
-				System.err.println("["+new Date().toString()+"] Registro: camapaña "+campaignName+ " Error configurando el Keystore");
+				System.err.println("["+new Date().toString()+"] Registro: camapa�a "+campaignName+ " Error configurando el Keystore");
 				e.printStackTrace();
 				try {
 					
@@ -499,22 +499,22 @@ public class CampaignManagement implements ServletContextListener {
 
 			e.printStackTrace();
 			try {
-				borrarArchivosCampaña(campaign);
+				borrarArchivosCampa�a(campaign);
 			} catch (IOException e1) {
-				System.err.println("[" + new Date().toString() + "] Registro: camapaña " + campaignName
-						+ " Error creando los archivos de la campaña o el token");
+				System.err.println("[" + new Date().toString() + "] Registro: camapa�a " + campaignName
+						+ " Error creando los archivos de la campa�a o el token");
 				e1.printStackTrace();
 			}
 			try {
 				return Response.status(500)
-						.entity(Base64.getUrlEncoder().encode("No se ha podido guardar la campaña".getBytes("UTF-8")))
+						.entity(Base64.getUrlEncoder().encode("No se ha podido guardar la campa�a".getBytes("UTF-8")))
 						.build();
 			} catch (UnsupportedEncodingException e1) {
 
 			}
 		}
 		
-		// Si no existe significa que es la primera campaña por lo que habra que
+		// Si no existe significa que es la primera campa�a por lo que habra que
 		// crearlo configurando
 		// un keystore donde se almacenaran las claves de encriptacion de este
 		// fichero y los siguientes
@@ -532,8 +532,8 @@ public class CampaignManagement implements ServletContextListener {
 				} catch (NoSuchAlgorithmException | KeyStoreException | CertificateException | IOException
 						| InvalidKeyException | NoSuchPaddingException | InvalidAlgorithmParameterException
 						| UnrecoverableEntryException e) {
-					System.err.println("[" + new Date().toString() + "] Registro: camapaña " + campaignName
-							+ " Error creando la base datos de campañas");
+					System.err.println("[" + new Date().toString() + "] Registro: camapa�a " + campaignName
+							+ " Error creando la base datos de campa�as");
 					e.printStackTrace();
 					try {
 						return Response.status(500)
@@ -545,15 +545,15 @@ public class CampaignManagement implements ServletContextListener {
 
 				}
 			}
-			// Si el fichero ya existe lo abrimos para añadir esta campaña
+			// Si el fichero ya existe lo abrimos para a�adir esta campa�a
 			else {
 				try {
 					cos = SymmetricEncryption.appendAES(campaignsFile, masterKeyAlias);
 				} catch (InvalidKeyException | IllegalArgumentException | KeyStoreException | NoSuchAlgorithmException
 						| CertificateException | UnrecoverableEntryException | InvalidAlgorithmParameterException
 						| NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException | IOException e) {
-					System.err.println("[" + new Date().toString() + "] Registro: camapaña " + campaignName
-							+ " Error abriendo para escribir la base de datos campañas");
+					System.err.println("[" + new Date().toString() + "] Registro: camapa�a " + campaignName
+							+ " Error abriendo para escribir la base de datos campa�as");
 					e.printStackTrace();
 					try {
 						return Response.status(500)
@@ -589,27 +589,27 @@ public class CampaignManagement implements ServletContextListener {
 					}
 				} catch (IOException e){
 					try {
-						borrarArchivosCampaña(campaign);
+						borrarArchivosCampa�a(campaign);
 					} catch (IOException e1) {
 						
 						e1.printStackTrace();
 					}
 					try {
-						return Response.status(500).entity(Base64.getUrlEncoder().encode("No se ha podido guardar la campaña".getBytes("UTF-8"))).build();
+						return Response.status(500).entity(Base64.getUrlEncoder().encode("No se ha podido guardar la campa�a".getBytes("UTF-8"))).build();
 					} catch (UnsupportedEncodingException e1) {
 						
 					}
 				}
 			}
 		}
-		synchronized (lockCampañas) {
-			campañas.put(campaignName, campaign);
+		synchronized (lockCampa�as) {
+			campa�as.put(campaignName, campaign);
 		}
 		synchronized (lockTokens) {
 			activeTokens.add(new String(Base64.getUrlEncoder().encode(token)));
 		}
 		
-		System.out.println("["+new Date().toString()+"] Registro: camapaña "+campaignName+" registrada correctamente");
+		System.out.println("["+new Date().toString()+"] Registro: camapa�a "+campaignName+" registrada correctamente");
 		
 		
 		return Response.status(200).entity(Base64.getUrlEncoder().encode(token)).build();
@@ -619,13 +619,13 @@ public class CampaignManagement implements ServletContextListener {
 	
 	
 	/**
-	 * Borrar archivos de una campaña pasada por parámetro.
+	 * Borrar archivos de una campa�a pasada por parámetro.
 	 *
-	 * @param c Campaña de la que se desea borrar los archivos
+	 * @param c Campa�a de la que se desea borrar los archivos
 	 * @throws IOException Signals that an I/O exception has occurred.
 	 * @see <a href="http://stackoverflow.com/a/8685959/6441806">Referencia</a>
 	 */
-	static void borrarArchivosCampaña (Campaign c) throws IOException{
+	static void borrarArchivosCampa�a (Campaign c) throws IOException{
 		
 		 Files.walkFileTree(c.getDirectory().toPath(), new SimpleFileVisitor<java.nio.file.Path>()
 		    {
@@ -665,11 +665,11 @@ public class CampaignManagement implements ServletContextListener {
 	}
 	
 	/**
-	 * Recorre la base de datos de campañas 
+	 * Recorre la base de datos de campa�as 
 	 * {@link CampaignManagement#campaignsFile} rellenando la estructura
-	 * {@link CampaignManagement#campañas} con su contenido
+	 * {@link CampaignManagement#campa�as} con su contenido
 	 */
-	private static void inicializaCampañas (){
+	private static void inicializaCampa�as (){
 		
 		
 		CipherInputStream cis = null;
@@ -681,7 +681,7 @@ public class CampaignManagement implements ServletContextListener {
 
 			else {
 				
-				System.out.println("["+new Date().toString()+"] inicializaCampañas: inicializando");
+				System.out.println("["+new Date().toString()+"] inicializaCampa�as: inicializando");
 				
 				
 				try {
@@ -689,7 +689,7 @@ public class CampaignManagement implements ServletContextListener {
 				} catch (InvalidKeyException | IllegalArgumentException | KeyStoreException | NoSuchAlgorithmException
 						| CertificateException | UnrecoverableEntryException | InvalidAlgorithmParameterException
 						| NoSuchPaddingException | IOException e) {
-					System.err.println("["+new Date().toString()+"] inicializaCampañas: error abriendo el fichero o este está vacío");
+					System.err.println("["+new Date().toString()+"] inicializaCampa�as: error abriendo el fichero o este está vacío");
 					e.printStackTrace();
 					
 					return;
@@ -711,7 +711,7 @@ public class CampaignManagement implements ServletContextListener {
 			try {
 				reader= new JsonReader(new InputStreamReader(cis, "UTF-8"));
 			} catch (UnsupportedEncodingException e) {
-				System.err.println("["+new Date().toString()+"] inicializaCampañas: error abriendo el fichero o este está vacío");
+				System.err.println("["+new Date().toString()+"] inicializaCampa�as: error abriendo el fichero o este está vacío");
 				e.printStackTrace();
 			
 				return;
@@ -720,7 +720,7 @@ public class CampaignManagement implements ServletContextListener {
 	
 			reader.setLenient(true);
 			try {
-				System.out.println("["+new Date().toString()+"] inicializaCampañas: Empezando a recorrer la base de datos");
+				System.out.println("["+new Date().toString()+"] inicializaCampa�as: Empezando a recorrer la base de datos");
 				Set<PosixFilePermission> permsRWX = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE);
 				Set<PosixFilePermission> permsRW = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
 				
@@ -739,7 +739,7 @@ public class CampaignManagement implements ServletContextListener {
 					
 					
 					if (!campaign.getDirectory().exists()) {
-						System.out.println("["+new Date().toString()+"] inicializaCampañas: Creando directorio: "+campaign.getDirectory().getAbsolutePath());
+						System.out.println("["+new Date().toString()+"] inicializaCampa�as: Creando directorio: "+campaign.getDirectory().getAbsolutePath());
 						Files.createDirectories(campaign.getDirectory().toPath(), PosixFilePermissions.asFileAttribute(permsRWX));
 					}
 					
@@ -747,13 +747,13 @@ public class CampaignManagement implements ServletContextListener {
 						
 						
 						Files.createFile(campaign.getDataBase().toPath(), PosixFilePermissions.asFileAttribute(permsRW));
-						System.out.println("["+new Date().toString()+"] inicializaCampañas: Creando fichero: "+campaign.getDataBase().getAbsolutePath());
+						System.out.println("["+new Date().toString()+"] inicializaCampa�as: Creando fichero: "+campaign.getDataBase().getAbsolutePath());
 						try {
 							SymmetricEncryption.encryptFileUsingKey(campaign.getDataBase(), campaign.getCampaignName());
 						} catch (InvalidKeyException | NoSuchAlgorithmException | KeyStoreException
 								| CertificateException | NoSuchPaddingException | InvalidAlgorithmParameterException
 								| UnrecoverableEntryException e) {
-							System.out.println("["+new Date().toString()+"] inicializaCampañas: Error creando fichero: "+campaign.getDataBase().getAbsolutePath());
+							System.out.println("["+new Date().toString()+"] inicializaCampa�as: Error creando fichero: "+campaign.getDataBase().getAbsolutePath());
 							e.printStackTrace();
 						}
 						
@@ -764,15 +764,15 @@ public class CampaignManagement implements ServletContextListener {
 					if (!campaign.getSignCtr().exists()) {
 
 						Files.createFile(campaign.getSignCtr().toPath(), PosixFilePermissions.asFileAttribute(permsRW));
-						System.out.println("["+new Date().toString()+"] inicializaCampañas: Creando fichero: "+campaign.getSignCtr().getAbsolutePath());
+						System.out.println("["+new Date().toString()+"] inicializaCampa�as: Creando fichero: "+campaign.getSignCtr().getAbsolutePath());
 					}
 					
-					synchronized (lockCampañas) {
-						campañas.put(campaign.getCampaignName(), campaign);
+					synchronized (lockCampa�as) {
+						campa�as.put(campaign.getCampaignName(), campaign);
 					}
 				}
 			} catch (JsonIOException | JsonSyntaxException | IOException  e) {
-				System.err.println("["+new Date().toString()+"] inicializaCampañas: Error leyendo base de datos de campañas");
+				System.err.println("["+new Date().toString()+"] inicializaCampa�as: Error leyendo base de datos de campa�as");
 				
 				e.printStackTrace();
 			
@@ -788,7 +788,7 @@ public class CampaignManagement implements ServletContextListener {
 			}
 		}
 		
-		System.out.println("["+new Date().toString()+"] inicializaCampañas: finalizado");
+		System.out.println("["+new Date().toString()+"] inicializaCampa�as: finalizado");
 		
 		
 		return;
@@ -803,8 +803,8 @@ public class CampaignManagement implements ServletContextListener {
 	 * <p>
 	 * Todos sus parametros estan encodeados en Base64
 	 *
-	 * @param campaignName64 nombre de la campaña
-	 * @param password64 contraseña de la campaña
+	 * @param campaignName64 nombre de la campa�a
+	 * @param password64 contrase�a de la campa�a
 	 * @return response con determinado codigo y mensaje en funcion del exito
 	 * o fracaso de la operación de login
 	 */
@@ -817,14 +817,14 @@ public class CampaignManagement implements ServletContextListener {
 		String campaignName = new String(Base64.getUrlDecoder().decode(campaignName64));
 		String password = new String(Base64.getUrlDecoder().decode(password64));
 		
-		System.out.println("["+new Date().toString()+"] login campaña "+campaignName+": inicializando");
+		System.out.println("["+new Date().toString()+"] login campa�a "+campaignName+": inicializando");
 		
 		
 		
 		
-		synchronized (lockCampañas) {
-			if (!campañas.containsKey(campaignName)) {
-				System.err.println("["+new Date().toString()+"] login campaña "+campaignName+": Error no existe campaña con ese nombre");
+		synchronized (lockCampa�as) {
+			if (!campa�as.containsKey(campaignName)) {
+				System.err.println("["+new Date().toString()+"] login campa�a "+campaignName+": Error no existe campa�a con ese nombre");
 				try {
 					
 					return Response.status(400).entity(Base64.getUrlEncoder()
@@ -837,9 +837,9 @@ public class CampaignManagement implements ServletContextListener {
 		CipherInputStream cis = null;
 		synchronized (lockCampaignsFile) {
 			if (!campaignsFile.exists()) {
-				System.err.println("["+new Date().toString()+"] login campaña "+campaignName+": Error no existen campañas creadas");
+				System.err.println("["+new Date().toString()+"] login campa�a "+campaignName+": Error no existen campa�as creadas");
 				try {
-					return Response.status(400).entity(Base64.getUrlEncoder().encode("Error, no existen campañas creadas".getBytes("UTF-8"))).build();
+					return Response.status(400).entity(Base64.getUrlEncoder().encode("Error, no existen campa�as creadas".getBytes("UTF-8"))).build();
 				} catch (UnsupportedEncodingException e) {}
 				
 				
@@ -851,7 +851,7 @@ public class CampaignManagement implements ServletContextListener {
 				} catch (InvalidKeyException | IllegalArgumentException | KeyStoreException | NoSuchAlgorithmException
 						| CertificateException | UnrecoverableEntryException | InvalidAlgorithmParameterException
 						| NoSuchPaddingException | IOException e) {
-					System.err.println("["+new Date().toString()+"] login campaña "+campaignName+": Error abriendo base de datos de campañas");
+					System.err.println("["+new Date().toString()+"] login campa�a "+campaignName+": Error abriendo base de datos de campa�as");
 					e.printStackTrace();
 					try {
 						return Response.status(500).entity(Base64.getUrlEncoder().encode("Error interno del servidor".getBytes("UTF-8"))).build();
@@ -873,7 +873,7 @@ public class CampaignManagement implements ServletContextListener {
 			try {
 				reader= new JsonReader(new InputStreamReader(cis, "UTF-8"));
 			} catch (UnsupportedEncodingException e) {
-				System.err.println("["+new Date().toString()+"] login campaña "+campaignName+": Error abriendo base de datos de campañas");
+				System.err.println("["+new Date().toString()+"] login campa�a "+campaignName+": Error abriendo base de datos de campa�as");
 				e.printStackTrace();
 				try {
 					return Response.status(500).entity(Base64.getUrlEncoder().encode("Error interno del servidor".getBytes("UTF-8"))).build();
@@ -882,7 +882,7 @@ public class CampaignManagement implements ServletContextListener {
 	
 			reader.setLenient(true);
 			try {
-				System.out.println("["+new Date().toString()+"] login campaña "+campaignName+": Empezando a recorrer campaigns.json");
+				System.out.println("["+new Date().toString()+"] login campa�a "+campaignName+": Empezando a recorrer campaigns.json");
 				while(reader.hasNext()){
 					JsonToken tokenJson =  reader.peek();
 					if (!tokenJson.equals(JsonToken.BEGIN_OBJECT)) {
@@ -900,15 +900,15 @@ public class CampaignManagement implements ServletContextListener {
 							synchronized (lockTokens) {
 								activeTokens.add(new String(Base64.getUrlEncoder().encode(token)));
 							}
-							System.out.println("["+new Date().toString()+"] login campaña "+campaignName+": Login correcto");
+							System.out.println("["+new Date().toString()+"] login campa�a "+campaignName+": Login correcto");
 							
 							return Response.status(200).entity(Base64.getUrlEncoder().encode(token)).build();
 						}
 						else{
-							System.out.println("["+new Date().toString()+"] login campaña "+campaignName+": Login incorrecto");
+							System.out.println("["+new Date().toString()+"] login campa�a "+campaignName+": Login incorrecto");
 							try {
 								
-								return Response.status(400).entity(Base64.getUrlEncoder().encode("Error, contraseña incorrecta".getBytes("UTF-8"))).build();
+								return Response.status(400).entity(Base64.getUrlEncoder().encode("Error, contrase�a incorrecta".getBytes("UTF-8"))).build();
 							} catch (UnsupportedEncodingException e) {}
 							
 						}
@@ -919,7 +919,7 @@ public class CampaignManagement implements ServletContextListener {
 					| KeyStoreException | CertificateException | NoSuchPaddingException | InvalidAlgorithmParameterException
 					| UnrecoverableEntryException | IllegalBlockSizeException | BadPaddingException | IOException
 					| CannotPerformOperationException | InvalidHashException e) {
-				System.err.println("["+new Date().toString()+"] login campaña "+campaignName+": Error leyendo base de datos de campañas");
+				System.err.println("["+new Date().toString()+"] login campa�a "+campaignName+": Error leyendo base de datos de campa�as");
 				e.printStackTrace();
 				try {
 					return Response.status(500).entity(Base64.getUrlEncoder().encode("Error interno del servidor".getBytes("UTF-8"))).build();
@@ -934,9 +934,9 @@ public class CampaignManagement implements ServletContextListener {
 			}
 		}
 		
-		System.out.println("["+new Date().toString()+"] login campaña "+campaignName+": se ha recorrido toda la base de datos sin encontrar la campaña buscada");
+		System.out.println("["+new Date().toString()+"] login campa�a "+campaignName+": se ha recorrido toda la base de datos sin encontrar la campa�a buscada");
 		try {
-			return Response.status(400).entity(Base64.getUrlEncoder().encode("Error, no existe una campaña con ese nombre".getBytes("UTF-8"))).build();
+			return Response.status(400).entity(Base64.getUrlEncoder().encode("Error, no existe una campa�a con ese nombre".getBytes("UTF-8"))).build();
 		} catch (UnsupportedEncodingException e) {return Response.status(500).build();}
 			
 	}
@@ -947,19 +947,19 @@ public class CampaignManagement implements ServletContextListener {
 	 * {@link CampaignManagement#login(String, String)} pero es usado por 
 	 * algunos métodos internos, no es invocado con peticiones HTTP.
 	 *
-	 * @param campaignName nombre de la campaña
-	 * @param password contraseña de la campaña
+	 * @param campaignName nombre de la campa�a
+	 * @param password contrase�a de la campa�a
 	 * @return response un entero usado como código y que coincide con las 
 	 * constantes tipo LOGIN_X definidas en esta clase
 	 */
 	public static int loginInterno (String campaignName,String password) {
 
 		
-		synchronized (lockCampañas) {
-			if (!campañas.containsKey(campaignName)) {
-				System.out.println("["+new Date().toString()+"] login interno campaña "+campaignName+": no existe campaña con ese nombre");
+		synchronized (lockCampa�as) {
+			if (!campa�as.containsKey(campaignName)) {
+				System.out.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": no existe campa�a con ese nombre");
 			
-				return LOGIN_NO_EXISTE_CAMPAÑA;
+				return LOGIN_NO_EXISTE_CAMPA�A;
 				
 			}
 		}
@@ -967,8 +967,8 @@ public class CampaignManagement implements ServletContextListener {
 		CipherInputStream cis = null;
 		synchronized (lockCampaignsFile) {
 			if (!campaignsFile.exists()) {
-				System.out.println("["+new Date().toString()+"] login interno campaña "+campaignName+": no existen campañas");
-				return LOGIN_NO_EXISTE_CAMPAÑA;
+				System.out.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": no existen campa�as");
+				return LOGIN_NO_EXISTE_CAMPA�A;
 		
 			}
 
@@ -978,7 +978,7 @@ public class CampaignManagement implements ServletContextListener {
 				} catch (InvalidKeyException | IllegalArgumentException | KeyStoreException | NoSuchAlgorithmException
 						| CertificateException | UnrecoverableEntryException | InvalidAlgorithmParameterException
 						| NoSuchPaddingException | IOException e) {
-					System.err.println("["+new Date().toString()+"] login interno campaña "+campaignName+": Error abriendo la base de datos de campañas");
+					System.err.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": Error abriendo la base de datos de campa�as");
 					e.printStackTrace();
 					return LOGIN_ERROR_INTERNO;
 				}
@@ -998,14 +998,14 @@ public class CampaignManagement implements ServletContextListener {
 			try {
 				reader= new JsonReader(new InputStreamReader(cis, "UTF-8"));
 			} catch (UnsupportedEncodingException e) {
-				System.err.println("["+new Date().toString()+"] login interno campaña "+campaignName+": Error abriendo la base de datos de campañas");
+				System.err.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": Error abriendo la base de datos de campa�as");
 				e.printStackTrace();
 				return LOGIN_ERROR_INTERNO;
 			}
 	
 			reader.setLenient(true);
 			try {
-				System.out.println("["+new Date().toString()+"] login interno campaña "+campaignName+": Empezando a recorrer campaigns.json");
+				System.out.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": Empezando a recorrer campaigns.json");
 				while(reader.hasNext()){
 					JsonToken tokenJson =  reader.peek();
 					if (!tokenJson.equals(JsonToken.BEGIN_OBJECT)) {
@@ -1018,13 +1018,13 @@ public class CampaignManagement implements ServletContextListener {
 					if (c.getCampaignName().equals(campaignName)) {
 						if(PasswordStorage.verifyPassword(password, c.getHashPass())){
 							
-							System.out.println("["+new Date().toString()+"] login interno campaña "+campaignName+": Login correcto");
+							System.out.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": Login correcto");
 							
 							return LOGIN_EXITO;
 						}
 						else{
 							
-							System.out.println("["+new Date().toString()+"] login interno campaña "+campaignName+": Login incorrecto");
+							System.out.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": Login incorrecto");
 							
 							return LOGIN_INCORRECTO;
 							
@@ -1036,7 +1036,7 @@ public class CampaignManagement implements ServletContextListener {
 			} catch (JsonIOException | JsonSyntaxException | IOException
 					| CannotPerformOperationException | InvalidHashException e) {
 			
-				System.err.println("["+new Date().toString()+"] login interno campaña "+campaignName+": Error leyendo base de datos de campañas");
+				System.err.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": Error leyendo base de datos de campa�as");
 				return LOGIN_ERROR_INTERNO;
 			} finally {
 				try {
@@ -1048,9 +1048,9 @@ public class CampaignManagement implements ServletContextListener {
 			}
 		}
 		
-		System.out.println("["+new Date().toString()+"] login interno campaña "+campaignName+": se ha recorrido toda la base de datos sin encontrar la campaña buscada");
+		System.out.println("["+new Date().toString()+"] login interno campa�a "+campaignName+": se ha recorrido toda la base de datos sin encontrar la campa�a buscada");
 		
-		return LOGIN_NO_EXISTE_CAMPAÑA;
+		return LOGIN_NO_EXISTE_CAMPA�A;
 			
 	}
 	
@@ -1059,7 +1059,7 @@ public class CampaignManagement implements ServletContextListener {
 	 * application/x-www-form-urlencoded.
 	 * 
 	 * @param token token que se desea autentica
-	 * @param campaignName64 nombre de la campaña en base 64
+	 * @param campaignName64 nombre de la campa�a en base 64
 	 * @return response con determinado codigo y mensaje en funcion del exito
 	 * o fracaso de la operación de autenticación
 	 */
@@ -1111,12 +1111,12 @@ public class CampaignManagement implements ServletContextListener {
 				} catch (UnsupportedEncodingException e1) {}
 			}
 			
-			System.out.println("["+new Date().toString()+"] authenticateToken: Campaña: "+campaignName+ " token desencriptado: "+campaignToken);
+			System.out.println("["+new Date().toString()+"] authenticateToken: Campa�a: "+campaignName+ " token desencriptado: "+campaignToken);
 			if (campaignToken.equals(campaignName)) {
 				
 				contains = false;
-				synchronized (lockCampañas) {
-					contains = campañas.containsKey(campaignToken);
+				synchronized (lockCampa�as) {
+					contains = campa�as.containsKey(campaignToken);
 				}
 				
 				if(contains){
@@ -1125,25 +1125,25 @@ public class CampaignManagement implements ServletContextListener {
 						activeTokens.add(token);
 					}
 					
-					System.out.println("["+new Date().toString()+"] authenticateToken: token añadido a activos");
+					System.out.println("["+new Date().toString()+"] authenticateToken: token a�adido a activos");
 					try {
 						return Response.status(200).entity(Base64.getUrlEncoder().encode("Token valido".getBytes("UTF-8"))).build();
 					} catch (UnsupportedEncodingException e1) {}
 				}
 				else
 				{
-					System.out.println("["+new Date().toString()+"] authenticateToken: No existe campaña con ese token");
+					System.out.println("["+new Date().toString()+"] authenticateToken: No existe campa�a con ese token");
 					try{
-						return Response.status(404).entity(Base64.getUrlEncoder().encode("Token invalido, no existe una campaña con dicho token".getBytes("UTF-8"))).build();
+						return Response.status(404).entity(Base64.getUrlEncoder().encode("Token invalido, no existe una campa�a con dicho token".getBytes("UTF-8"))).build();
 					} catch (UnsupportedEncodingException e1) {}
 				}
 				
 			}
 			else {
 				
-				System.out.println("["+new Date().toString()+"] authenticateToken: No coinciden el token desencriptado y la campaña");
+				System.out.println("["+new Date().toString()+"] authenticateToken: No coinciden el token desencriptado y la campa�a");
 				try {
-					return Response.status(404).entity(Base64.getUrlEncoder().encode("Token invalido, no coincide con la campaña enviada".getBytes("UTF-8"))).build();
+					return Response.status(404).entity(Base64.getUrlEncoder().encode("Token invalido, no coincide con la campa�a enviada".getBytes("UTF-8"))).build();
 				} catch (UnsupportedEncodingException e1) {}
 			}
 			
@@ -1159,7 +1159,7 @@ public class CampaignManagement implements ServletContextListener {
 	 * usado por algunos métodos internos, no es invocado con peticiones HTTP.
 	 *
 	 * @param token token a comprobar
-	 * @param campaignName nombre de la campaña
+	 * @param campaignName nombre de la campa�a
 	 * @return true, si el token es autenticado, o false, en caso contrario
 	 */
 	
@@ -1203,12 +1203,12 @@ public class CampaignManagement implements ServletContextListener {
 				return false;
 			}
 			
-			System.out.println("["+new Date().toString()+"] authenticateToken interno: Campaña: "+campaignName+ " token desencriptado: "+campaignToken);
+			System.out.println("["+new Date().toString()+"] authenticateToken interno: Campa�a: "+campaignName+ " token desencriptado: "+campaignToken);
 			if (campaignToken.equals(campaignName)) {
 				
 				contains = false;
-				synchronized (lockCampañas) {
-					contains = campañas.containsKey(campaignToken);
+				synchronized (lockCampa�as) {
+					contains = campa�as.containsKey(campaignToken);
 				}
 				
 				if(contains){
@@ -1217,19 +1217,19 @@ public class CampaignManagement implements ServletContextListener {
 						activeTokens.add(token);
 					}
 					
-					System.out.println("["+new Date().toString()+"] authenticateToken interno: token añadido a activos");
+					System.out.println("["+new Date().toString()+"] authenticateToken interno: token a�adido a activos");
 					return true;
 				}
 				else
 				{
-					System.out.println("["+new Date().toString()+"] authenticateToken interno: No existe campaña con ese token");
+					System.out.println("["+new Date().toString()+"] authenticateToken interno: No existe campa�a con ese token");
 					return false;
 				}
 				
 			}
 			else {
 				
-				System.out.println("["+new Date().toString()+"] authenticateToken interno: No coinciden el token desencriptado y la campaña");
+				System.out.println("["+new Date().toString()+"] authenticateToken interno: No coinciden el token desencriptado y la campa�a");
 				return false;
 			}
 			

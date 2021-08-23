@@ -181,10 +181,10 @@ public class ImageProcessingThread implements Runnable {
 					for (int i = 1; i <= ocr.length; i++) {
 						numDni = ocr[ocr.length - i].replaceAll("\\s","");
 						
-						int tamaÃ±oLinea = numDni.length();
+						int tamañoLinea = numDni.length();
 
-						if (tamaÃ±oLinea > 9) {
-							for (int j = 0; j <=(tamaÃ±oLinea - 9); j++) {
+						if (tamañoLinea > 9) {
+							for (int j = 0; j <=(tamañoLinea - 9); j++) {
 								String numDniTemp = numDni.substring(j, j + 9);
 								
 								if (numDniTemp.matches("\\d{8}[A-Z]")) {

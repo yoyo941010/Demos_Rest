@@ -64,14 +64,14 @@ public class FileManagement {
 
 	
 	/**
-	 * The Constant DOWNLOAD_URL a la que basta con añadirle al final el token
+	 * The Constant DOWNLOAD_URL a la que basta con a�adirle al final el token
 	 * de descarga generado para poder devolverselo al usuario
 	 */
 	public static final String DOWNLOAD_URL = "https://prodiasv08.fis.usal.es/Demos_Rest/rest/files/download?campaign=%s&download_token=%s";
 
 	/**
 	 * The web page message que se puede personalizar mediante el método
-	 * {@link String#format(String, Object...)} añadiendole un título, 
+	 * {@link String#format(String, Object...)} a�adiendole un título, 
 	 * un header y un mensaje a mostrar al usuario. Está basado en los mensajes
 	 * que muestra <a href="http://tomcat.apache.org/">Apache Tomcat</a>
 	 */
@@ -95,9 +95,9 @@ public class FileManagement {
 	 *  	<li>front: un {@link File} que representa la foto frontal del DNI</li>
 	 *  	<li>back: un {@link File} que representa la foto posterior del DNI</li>
 	 *  	<li>token: un {@link String} que representa el token de sesión de 
-	 *  		campaña</li>
+	 *  		campa�a</li>
 	 *  	<li>campaign: un {@link String} que representa el nombre de la 
-	 * 			campaña</li>
+	 * 			campa�a</li>
 	 * 		<li>num_sign_paper: un {@link String} que representa el número de 
 	 * 			la hoja de firmas asociada a este DNI</li>
 	 *  </ul> 
@@ -165,7 +165,7 @@ public class FileManagement {
 			} catch (UnsupportedEncodingException e) {}
 		}
 		
-		Campaign c = CampaignManagement.getCampaña(campaign);
+		Campaign c = CampaignManagement.getCampa�a(campaign);
 		
 		UploadThread front = new UploadThread(frontField, form, this, c);
 		UploadThread back = new UploadThread(backField, form, this, c);
@@ -324,8 +324,8 @@ public class FileManagement {
 	/**
 	 * Guarda un fichero procedente de un {@link InputStream} en una 
 	 * localización pasada por parametro. Para ello crea el fichero con 
-	 * permisos de lectura y escritura para el dueño únicamente, controlando
-	 * que no exista ya un fichero con ese nombre (en cuyo caso le añade un 
+	 * permisos de lectura y escritura para el due�o únicamente, controlando
+	 * que no exista ya un fichero con ese nombre (en cuyo caso le a�ade un 
 	 * número al final) y va copiando el InputStream a un OutputStream KBi a 
 	 * KBi.
 	 *
@@ -419,13 +419,13 @@ public class FileManagement {
 	 * application/x-www-form-urlencoded. Comprueba los credenciales del 
 	 * usuario, si estos son correctos arranca proceso asíncrono de 
 	 * construcción del PDF y le muestra un mensaje HTML al usuario indicandole
-	 * como descargarse el fichero, su tamaño y el tiempo estimado de espera.
+	 * como descargarse el fichero, su tama�o y el tiempo estimado de espera.
 	 * 
 	 * <p>
 	 * Todos sus parametros estan encodeados en Base64
 	 *
-	 * @param campaignName64 nombre de la campaña
-	 * @param password64 contraseña de la campaña
+	 * @param campaignName64 nombre de la campa�a
+	 * @param password64 contrase�a de la campa�a
 	 * @return response con determinado codigo y mensaje en funcion del exito
 	 * o fracaso de la operación de preparado de la descarga
 	 */
@@ -463,7 +463,7 @@ public class FileManagement {
 			
 		
 
-		case CampaignManagement.LOGIN_NO_EXISTE_CAMPAÑA:
+		case CampaignManagement.LOGIN_NO_EXISTE_CAMPA�A:
 			
 			
 			h1 = "Petici&oacute;n de descarga - Error";
@@ -512,7 +512,7 @@ public class FileManagement {
 		
 		String downloadURL = String.format(DOWNLOAD_URL, campaignName64, downloadToken);
 		
-		Campaign camp = CampaignManagement.getCampaña(campaignName);
+		Campaign camp = CampaignManagement.getCampa�a(campaignName);
 		
 		long numFirmas;
 		synchronized (camp) {
@@ -522,7 +522,7 @@ public class FileManagement {
 			h1 = "Petici&oacute;n de descarga - Error";
 			mensaje = "Esta campa&ntilde;a no contiene ninguna firma.";
 			response = String.format(webPageMessage, title, h1, mensaje);
-			System.err.println("[" + new Date().toString() + "] Download query "+campaignName+": La campaña no contiene firmas.");
+			System.err.println("[" + new Date().toString() + "] Download query "+campaignName+": La campa�a no contiene firmas.");
 			return Response.status(500).entity(response)
 					.build();
 		}
@@ -564,19 +564,19 @@ public class FileManagement {
 		long bytesEstimados = numHojasDNI*22754703;
 		
 		
-		String tamañoEstimado = humanReadableByteCount(bytesEstimados, false);
+		String tama�oEstimado = humanReadableByteCount(bytesEstimados, false);
 		
 		title = "Demos";
 		h1 = "Petici&oacute;n de descarga";
 		mensaje = "Su documento estar&aacute; preparado en "+tiempoEstimado+" minutos y "
-				+ "pesar&aacute; "+tamañoEstimado+" aproximadamente en la siguiente  <a href=\""+downloadURL+"\">URL</a>.";
+				+ "pesar&aacute; "+tama�oEstimado+" aproximadamente en la siguiente  <a href=\""+downloadURL+"\">URL</a>.";
 		response = String.format(webPageMessage, title, h1, mensaje);
 		System.out.println("[" + new Date().toString() + "] Download query "+campaignName+": finalizando correctamente");
 		return Response.status(200).entity(response).build();
 	}
 	
 	/**
-	 * Recibe peticiones de descarga para un determinado token y campaña, 
+	 * Recibe peticiones de descarga para un determinado token y campa�a, 
 	 * comprueba si el PDF asociado a estos parametros está construido 
 	 * correctamente y en caso afirmativo responde devolviendo el stream de ese
 	 * fichero.
@@ -673,10 +673,10 @@ public class FileManagement {
 	}
 	
 	/**
-	 * Genera token de descarga encriptando el nombre de la campaña que se le 
+	 * Genera token de descarga encriptando el nombre de la campa�a que se le 
 	 * pasa por parametro.
 	 *
-	 * @param campaign nombre de la campaña a encriptar
+	 * @param campaign nombre de la campa�a a encriptar
 	 * 
 	 * @return token generado
 	 * 
@@ -707,14 +707,14 @@ public class FileManagement {
 	
 	
 	/**
-	 * Convierte un tamaño en bytes representado por su parametro bytes en
+	 * Convierte un tama�o en bytes representado por su parametro bytes en
 	 * una cadena de caracteres que el usuario puede interpretar más facilmente
 	 *
 	 * @param bytes los bytes a convertir
 	 * @param si controla si el resultado ha de ser expresado en el sistema 
 	 * internacional (aumentando de 10^3 en 10^3 las unidades) o por el 
 	 * contrario en binario (aumentando de 2^10 en 2^10)
-	 * @return string que contiene el tamaño ya convertido
+	 * @return string que contiene el tama�o ya convertido
 	 * @see <a href="http://stackoverflow.com/a/3758880/6441806">Referencia</a>
 	 */
 	public static String humanReadableByteCount(long bytes, boolean si) {
